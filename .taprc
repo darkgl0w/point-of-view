@@ -3,4 +3,5 @@ jsx: false
 flow: false
 coverage: true
 nyc-arg: [--exclude=out]
-check-coverage: false
+check-coverage: true
+100: true

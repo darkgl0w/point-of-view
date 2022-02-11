@@ -8,6 +8,8 @@ const { existsSync, rmdirSync } = require('fs')
 const { join } = require('path')
 const pino = require('pino')
 const split = require('split2')
+const plugin = require('..')
+
 const compileOptions = {
   path: 'templates',
   destination: 'out',
@@ -17,14 +19,14 @@ const compileOptions = {
 require('./helper').dotHtmlMinifierTests(t, compileOptions, true)
 require('./helper').dotHtmlMinifierTests(t, compileOptions, false)
 
-test('reply.view with dot engine .dot file', t => {
+test('reply.view with dot engine .dot file', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const data = { text: 'text' }
   const engine = require('dot')
   engine.log = false
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -52,13 +54,50 @@ test('reply.view with dot engine .dot file', t => {
   })
 })
 
-test('reply.view with dot engine .dot file should create non-existent destination', t => {
+test('reply.view with dot engine .dot file after setting the `Content-Type` header', (t) => {
+  t.plan(6)
+  const fastify = Fastify()
+  const data = { text: 'text' }
+  const engine = require('dot')
+  engine.log = false
+
+  fastify.register(plugin, {
+    engine: {
+      dot: engine
+    },
+    root: 'templates'
+  })
+
+  fastify.get('/', (req, reply) => {
+    reply
+      .header('Content-Type', 'text/html; charset=utf-8')
+      .view('testdot', data)
+  })
+
+  fastify.listen(0, err => {
+    t.error(err)
+
+    sget({
+      method: 'GET',
+      url: 'http://localhost:' + fastify.server.address().port
+    }, (err, response, body) => {
+      t.error(err)
+      t.equal(response.statusCode, 200)
+      t.equal(response.headers['content-length'], '' + body.length)
+      t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+      t.equal(body.toString(), engine.process({ path: 'templates', destination: 'out' }).testdot(data))
+      fastify.close()
+    })
+  })
+})
+
+test('reply.view with dot engine .dot file should create non-existent destination', (t) => {
   t.plan(2)
   const fastify = Fastify()
   const engine = require('dot')
   engine.log = false
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -80,7 +119,7 @@ test('reply.view with dot engine .dot file should create non-existent destinatio
   })
 })
 
-test('reply.view with dot engine .dot file should log WARN if template not found', t => {
+test('reply.view with dot engine .dot file should log WARN if template not found', (t) => {
   t.plan(2)
   const splitStream = split(JSON.parse)
   splitStream.on('data', (line) => {
@@ -95,7 +134,7 @@ test('reply.view with dot engine .dot file should log WARN if template not found
 
   t.teardown(() => rmdirSync('empty'))
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -110,14 +149,14 @@ test('reply.view with dot engine .dot file should log WARN if template not found
   })
 })
 
-test('reply.view with dot engine .jst file', t => {
+test('reply.view with dot engine .jst file', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const data = { text: 'text' }
   const engine = require('dot')
   engine.log = false
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -146,7 +185,7 @@ test('reply.view with dot engine .jst file', t => {
   })
 })
 
-test('reply.view with dot engine without data-parameter but defaultContext', t => {
+test('reply.view with dot engine without data-parameter but defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const data = { text: 'text' }
@@ -154,7 +193,7 @@ test('reply.view with dot engine without data-parameter but defaultContext', t =
   const engine = require('dot')
   engine.log = false
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -183,14 +222,14 @@ test('reply.view with dot engine without data-parameter but defaultContext', t =
   })
 })
 
-test('reply.view with dot engine without data-parameter but without defaultContext', t => {
+test('reply.view with dot engine without data-parameter but without defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
 
   const engine = require('dot')
   engine.log = false
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -219,7 +258,7 @@ test('reply.view with dot engine without data-parameter but without defaultConte
   })
 })
 
-test('reply.view with dot engine with data-parameter and defaultContext', t => {
+test('reply.view with dot engine with data-parameter and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const data = { text: 'text' }
@@ -227,7 +266,7 @@ test('reply.view with dot engine with data-parameter and defaultContext', t => {
   const engine = require('dot')
   engine.log = false
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -256,7 +295,7 @@ test('reply.view with dot engine with data-parameter and defaultContext', t => {
   })
 })
 
-test('reply.view for dot engine without data-parameter and defaultContext but with reply.locals', t => {
+test('reply.view for dot engine without data-parameter and defaultContext but with reply.locals', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const localsData = { text: 'text from locals' }
@@ -264,7 +303,7 @@ test('reply.view for dot engine without data-parameter and defaultContext but wi
   const engine = require('dot')
   engine.log = false
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -297,7 +336,7 @@ test('reply.view for dot engine without data-parameter and defaultContext but wi
   })
 })
 
-test('reply.view for dot engine without defaultContext but with reply.locals and data-parameter', t => {
+test('reply.view for dot engine without defaultContext but with reply.locals and data-parameter', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const localsData = { text: 'text from locals' }
@@ -306,7 +345,7 @@ test('reply.view for dot engine without defaultContext but with reply.locals and
   const engine = require('dot')
   engine.log = false
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -339,7 +378,7 @@ test('reply.view for dot engine without defaultContext but with reply.locals and
   })
 })
 
-test('reply.view for dot engine without data-parameter but with reply.locals and defaultContext', t => {
+test('reply.view for dot engine without data-parameter but with reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const localsData = { text: 'text from locals' }
@@ -348,7 +387,7 @@ test('reply.view for dot engine without data-parameter but with reply.locals and
   const engine = require('dot')
   engine.log = false
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -382,7 +421,7 @@ test('reply.view for dot engine without data-parameter but with reply.locals and
   })
 })
 
-test('reply.view for dot engine with data-parameter and reply.locals and defaultContext', t => {
+test('reply.view for dot engine with data-parameter and reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const localsData = { text: 'text from locals' }
@@ -391,7 +430,7 @@ test('reply.view for dot engine with data-parameter and reply.locals and default
 
   const engine = require('dot')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -425,13 +464,13 @@ test('reply.view for dot engine with data-parameter and reply.locals and default
   })
 })
 
-test('fastify.view with dot engine, should throw page missing', t => {
+test('fastify.view with dot engine, should throw page missing', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const engine = require('dot')
   engine.log = false
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     }
@@ -448,13 +487,13 @@ test('fastify.view with dot engine, should throw page missing', t => {
   })
 })
 
-test('reply.view with dot engine with layout option', t => {
+test('reply.view with dot engine with layout option', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const engine = require('dot')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -483,13 +522,13 @@ test('reply.view with dot engine with layout option', t => {
   })
 })
 
-test('reply.view with dot engine with layout option on render', t => {
+test('reply.view with dot engine with layout option on render', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const engine = require('dot')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -517,13 +556,13 @@ test('reply.view with dot engine with layout option on render', t => {
   })
 })
 
-test('reply.view with dot engine with layout option on render', t => {
+test('reply.view with dot engine with layout option on render', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const engine = require('dot')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },
@@ -551,13 +590,13 @@ test('reply.view with dot engine with layout option on render', t => {
   })
 })
 
-test('reply.view should return 500 if layout is missing on render', t => {
+test('reply.view should return 500 if layout is missing on render', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const engine = require('dot')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       dot: engine
     },

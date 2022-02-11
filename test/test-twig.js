@@ -4,17 +4,18 @@ const t = require('tap')
 const test = t.test
 const sget = require('simple-get').concat
 const Fastify = require('fastify')
+const plugin = require('..')
 
 require('./helper').twigHtmlMinifierTests(t, true)
 require('./helper').twigHtmlMinifierTests(t, false)
 
-test('reply.view with twig engine', t => {
+test('reply.view with twig engine', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const Twig = require('twig')
   const data = { title: 'fastify', text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     }
@@ -44,13 +45,13 @@ test('reply.view with twig engine', t => {
   })
 })
 
-test('reply.view with twig engine and simple include', t => {
+test('reply.view with twig engine and simple include', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const Twig = require('twig')
   const data = { title: 'fastify', text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     }
@@ -80,13 +81,13 @@ test('reply.view with twig engine and simple include', t => {
   })
 })
 
-test('reply.view for twig without data-parameter but defaultContext', t => {
+test('reply.view for twig without data-parameter but defaultContext', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const Twig = require('twig')
   const data = { title: 'fastify', text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     },
@@ -117,12 +118,12 @@ test('reply.view for twig without data-parameter but defaultContext', t => {
   })
 })
 
-test('reply.view for twig without data-parameter and without defaultContext', t => {
+test('reply.view for twig without data-parameter and without defaultContext', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const Twig = require('twig')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     }
@@ -152,13 +153,13 @@ test('reply.view for twig without data-parameter and without defaultContext', t 
   })
 })
 
-test('reply.view with twig engine and defaultContext', t => {
+test('reply.view with twig engine and defaultContext', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const Twig = require('twig')
   const data = { title: 'fastify', text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     },
@@ -189,13 +190,13 @@ test('reply.view with twig engine and defaultContext', t => {
   })
 })
 
-test('reply.view for twig engine without data-parameter and defaultContext but with reply.locals', t => {
+test('reply.view for twig engine without data-parameter and defaultContext but with reply.locals', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const Twig = require('twig')
   const localsData = { text: 'text from locals' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     }
@@ -230,14 +231,14 @@ test('reply.view for twig engine without data-parameter and defaultContext but w
   })
 })
 
-test('reply.view for twig engine without defaultContext but with reply.locals and data-parameter', t => {
+test('reply.view for twig engine without defaultContext but with reply.locals and data-parameter', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const Twig = require('twig')
   const localsData = { text: 'text from locals' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     }
@@ -272,14 +273,14 @@ test('reply.view for twig engine without defaultContext but with reply.locals an
   })
 })
 
-test('reply.view for twig engine without data-parameter but with reply.locals and defaultContext', t => {
+test('reply.view for twig engine without data-parameter but with reply.locals and defaultContext', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const Twig = require('twig')
   const localsData = { text: 'text from locals' }
   const contextData = { text: 'text from context' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     },
@@ -315,7 +316,7 @@ test('reply.view for twig engine without data-parameter but with reply.locals an
   })
 })
 
-test('reply.view for twig engine with data-parameter and reply.locals and defaultContext', t => {
+test('reply.view for twig engine with data-parameter and reply.locals and defaultContext', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const Twig = require('twig')
@@ -323,7 +324,7 @@ test('reply.view for twig engine with data-parameter and reply.locals and defaul
   const contextData = { text: 'text from context' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     },
@@ -359,13 +360,13 @@ test('reply.view for twig engine with data-parameter and reply.locals and defaul
   })
 })
 
-test('reply.view with twig engine, will preserve content-type', t => {
+test('reply.view with twig engine, will preserve content-type', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const Twig = require('twig')
   const data = { title: 'fastify', text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     }
@@ -396,12 +397,12 @@ test('reply.view with twig engine, will preserve content-type', t => {
   })
 })
 
-test('fastify.view with twig engine, should throw page missing', t => {
+test('fastify.view with twig engine, should throw page missing', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const Twig = require('twig')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     }
@@ -418,14 +419,14 @@ test('fastify.view with twig engine, should throw page missing', t => {
   })
 })
 
-test('reply.view with twig engine should return 500 if renderFile fails', t => {
+test('reply.view with twig engine should return 500 if renderFile fails', (t) => {
   t.plan(4)
   const fastify = Fastify()
   const Twig = {
     renderFile: (_, __, callback) => { callback(Error('RenderFile Error')) }
   }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       twig: Twig
     }

@@ -6,17 +6,18 @@ const sget = require('simple-get').concat
 const Fastify = require('fastify')
 const fs = require('fs')
 const proxyquire = require('proxyquire')
+const plugin = require('..')
 
 require('./helper').pugHtmlMinifierTests(t, true)
 require('./helper').pugHtmlMinifierTests(t, false)
 
-test('reply.view with pug engine', t => {
+test('reply.view with pug engine', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     }
@@ -43,7 +44,7 @@ test('reply.view with pug engine', t => {
   })
 })
 
-test('reply.view with pug engine in production mode should use cache', t => {
+test('reply.view with pug engine in production mode should use cache', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
@@ -86,13 +87,13 @@ test('reply.view with pug engine in production mode should use cache', t => {
   })
 })
 
-test('reply.view with pug engine and includes', t => {
+test('reply.view with pug engine and includes', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     }
@@ -119,13 +120,13 @@ test('reply.view with pug engine and includes', t => {
   })
 })
 
-test('reply.view for pug without data-parameter but defaultContext', t => {
+test('reply.view for pug without data-parameter but defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     },
@@ -153,12 +154,12 @@ test('reply.view for pug without data-parameter but defaultContext', t => {
   })
 })
 
-test('reply.view for pug without data-parameter and without defaultContext', t => {
+test('reply.view for pug without data-parameter and without defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     }
@@ -185,13 +186,13 @@ test('reply.view for pug without data-parameter and without defaultContext', t =
   })
 })
 
-test('reply.view with pug engine and defaultContext', t => {
+test('reply.view with pug engine and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     },
@@ -219,13 +220,13 @@ test('reply.view with pug engine and defaultContext', t => {
   })
 })
 
-test('reply.view for pug engine without data-parameter and defaultContext but with reply.locals', t => {
+test('reply.view for pug engine without data-parameter and defaultContext but with reply.locals', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
   const localsData = { text: 'text from locals' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     }
@@ -257,14 +258,14 @@ test('reply.view for pug engine without data-parameter and defaultContext but wi
   })
 })
 
-test('reply.view for pug engine without defaultContext but with reply.locals and data-parameter', t => {
+test('reply.view for pug engine without defaultContext but with reply.locals and data-parameter', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
   const localsData = { text: 'text from locals' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     }
@@ -296,14 +297,14 @@ test('reply.view for pug engine without defaultContext but with reply.locals and
   })
 })
 
-test('reply.view for pug engine without data-parameter but with reply.locals and defaultContext', t => {
+test('reply.view for pug engine without data-parameter but with reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
   const localsData = { text: 'text from locals' }
   const contextData = { text: 'text from context' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     },
@@ -336,7 +337,7 @@ test('reply.view for pug engine without data-parameter but with reply.locals and
   })
 })
 
-test('reply.view for pug engine with data-parameter and reply.locals and defaultContext', t => {
+test('reply.view for pug engine with data-parameter and reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
@@ -344,7 +345,7 @@ test('reply.view for pug engine with data-parameter and reply.locals and default
   const contextData = { text: 'text from context' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     },
@@ -377,13 +378,13 @@ test('reply.view for pug engine with data-parameter and reply.locals and default
   })
 })
 
-test('reply.view with pug engine, will preserve content-type', t => {
+test('reply.view with pug engine, will preserve content-type', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const pug = require('pug')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     }
@@ -411,12 +412,12 @@ test('reply.view with pug engine, will preserve content-type', t => {
   })
 })
 
-test('fastify.view with pug engine, should throw page missing', t => {
+test('fastify.view with pug engine, should throw page missing', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const pug = require('pug')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     }
@@ -433,12 +434,12 @@ test('fastify.view with pug engine, should throw page missing', t => {
   })
 })
 
-test('reply.view with pug engine, should throw error if non existent template path', t => {
+test('reply.view with pug engine, should throw error if non existent template path', (t) => {
   t.plan(5)
   const fastify = Fastify()
   const pug = require('pug')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     },
@@ -465,14 +466,14 @@ test('reply.view with pug engine, should throw error if non existent template pa
   })
 })
 
-test('reply.view with pug engine should return 500 if compile fails', t => {
+test('reply.view with pug engine should return 500 if compile fails', (t) => {
   t.plan(4)
   const fastify = Fastify()
   const pug = {
     compile: () => { throw Error('Compile Error') }
   }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: pug
     }

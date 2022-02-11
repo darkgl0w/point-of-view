@@ -7,6 +7,8 @@ const Fastify = require('fastify')
 const fs = require('fs')
 const minifier = require('html-minifier')
 const proxyquire = require('proxyquire')
+const plugin = require('..')
+
 const minifierOpts = {
   removeComments: true,
   removeCommentsFromCDATA: true,
@@ -16,13 +18,13 @@ const minifierOpts = {
   removeEmptyAttributes: true
 }
 
-test('reply.view with mustache engine', t => {
+test('reply.view with mustache engine', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     }
@@ -49,13 +51,48 @@ test('reply.view with mustache engine', t => {
   })
 })
 
-test('reply.view for mustache without data-parameter but defaultContext', t => {
+test('reply.view with mustache engine after setting the `Content-Type` header', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
+    engine: {
+      mustache: mustache
+    }
+  })
+
+  fastify.get('/', (req, reply) => {
+    reply
+      .header('Content-Type', 'text/html; charset=utf-8')
+      .view('./templates/index.html', data)
+  })
+
+  fastify.listen(0, err => {
+    t.error(err)
+
+    sget({
+      method: 'GET',
+      url: 'http://localhost:' + fastify.server.address().port
+    }, (err, response, body) => {
+      t.error(err)
+      t.equal(response.statusCode, 200)
+      t.equal(response.headers['content-length'], '' + body.length)
+      t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+      t.equal(mustache.render(fs.readFileSync('./templates/index.html', 'utf8'), data), body.toString())
+      fastify.close()
+    })
+  })
+})
+
+test('reply.view for mustache without data-parameter but defaultContext', (t) => {
+  t.plan(6)
+  const fastify = Fastify()
+  const mustache = require('mustache')
+  const data = { text: 'text' }
+
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     },
@@ -83,12 +120,12 @@ test('reply.view for mustache without data-parameter but defaultContext', t => {
   })
 })
 
-test('reply.view for mustache without data-parameter and without defaultContext', t => {
+test('reply.view for mustache without data-parameter and without defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     }
@@ -116,13 +153,13 @@ test('reply.view for mustache without data-parameter and without defaultContext'
   })
 })
 
-test('reply.view with mustache engine and defaultContext', t => {
+test('reply.view with mustache engine and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     },
@@ -150,13 +187,13 @@ test('reply.view with mustache engine and defaultContext', t => {
   })
 })
 
-test('reply.view for mustache engine without data-parameter and defaultContext but with reply.locals', t => {
+test('reply.view for mustache engine without data-parameter and defaultContext but with reply.locals', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const localsData = { text: 'text from locals' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     }
@@ -188,14 +225,14 @@ test('reply.view for mustache engine without data-parameter and defaultContext b
   })
 })
 
-test('reply.view for mustache engine without defaultContext but with reply.locals and data-parameter', t => {
+test('reply.view for mustache engine without defaultContext but with reply.locals and data-parameter', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const localsData = { text: 'text from locals' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     }
@@ -227,14 +264,14 @@ test('reply.view for mustache engine without defaultContext but with reply.local
   })
 })
 
-test('reply.view for mustache engine without data-parameter but with reply.locals and defaultContext', t => {
+test('reply.view for mustache engine without data-parameter but with reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const localsData = { text: 'text from locals' }
   const contextData = { text: 'text from context' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     },
@@ -267,7 +304,7 @@ test('reply.view for mustache engine without data-parameter but with reply.local
   })
 })
 
-test('reply.view for mustache engine with data-parameter and reply.locals and defaultContext', t => {
+test('reply.view for mustache engine with data-parameter and reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
@@ -275,7 +312,7 @@ test('reply.view for mustache engine with data-parameter and reply.locals and de
   const contextData = { text: 'text from context' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     },
@@ -308,13 +345,13 @@ test('reply.view for mustache engine with data-parameter and reply.locals and de
   })
 })
 
-test('reply.view with mustache engine with partials', t => {
+test('reply.view with mustache engine with partials', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     }
@@ -340,7 +377,7 @@ test('reply.view with mustache engine with partials', t => {
   })
 })
 
-test('reply.view with mustache engine with partials in production mode should use cache', t => {
+test('reply.view with mustache engine with partials in production mode should use cache', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
@@ -383,13 +420,13 @@ test('reply.view with mustache engine with partials in production mode should us
   })
 })
 
-test('reply.view with mustache engine with partials and html-minifier', t => {
+test('reply.view with mustache engine with partials and html-minifier', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     },
@@ -419,13 +456,13 @@ test('reply.view with mustache engine with partials and html-minifier', t => {
   })
 })
 
-test('reply.view with mustache engine with partials and paths excluded from html-minifier', t => {
+test('reply.view with mustache engine with partials and paths excluded from html-minifier', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     },
@@ -456,14 +493,14 @@ test('reply.view with mustache engine with partials and paths excluded from html
   })
 })
 
-test('reply.view with mustache engine, template folder specified', t => {
+test('reply.view with mustache engine, template folder specified', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
   const templatesFolder = 'templates'
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     },
@@ -491,14 +528,14 @@ test('reply.view with mustache engine, template folder specified', t => {
   })
 })
 
-test('reply.view with mustache engine, template folder specified with partials', t => {
+test('reply.view with mustache engine, template folder specified with partials', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
   const templatesFolder = 'templates'
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     },
@@ -525,13 +562,13 @@ test('reply.view with mustache engine, template folder specified with partials',
   })
 })
 
-test('reply.view with mustache engine, missing template file', t => {
+test('reply.view with mustache engine, missing template file', (t) => {
   t.plan(5)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     }
@@ -557,13 +594,13 @@ test('reply.view with mustache engine, missing template file', t => {
   })
 })
 
-test('reply.view with mustache engine, with partials missing template file', t => {
+test('reply.view with mustache engine, with partials missing template file', (t) => {
   t.plan(5)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     }
@@ -588,13 +625,13 @@ test('reply.view with mustache engine, with partials missing template file', t =
   })
 })
 
-test('reply.view with mustache engine, with partials missing partials file', t => {
+test('reply.view with mustache engine, with partials missing partials file', (t) => {
   t.plan(5)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     }
@@ -619,13 +656,13 @@ test('reply.view with mustache engine, with partials missing partials file', t =
   })
 })
 
-test('reply.view with mustache engine, with partials and multiple missing partials file', t => {
+test('reply.view with mustache engine, with partials and multiple missing partials file', (t) => {
   t.plan(5)
   const fastify = Fastify()
   const mustache = require('mustache')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     }
@@ -650,12 +687,12 @@ test('reply.view with mustache engine, with partials and multiple missing partia
   })
 })
 
-test('fastify.view with mustache engine, should throw page missing', t => {
+test('fastify.view with mustache engine, should throw page missing', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const mustache = require('mustache')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       mustache: mustache
     }

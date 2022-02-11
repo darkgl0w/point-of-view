@@ -7,6 +7,8 @@ const Fastify = require('fastify')
 const fs = require('fs')
 const path = require('path')
 const minifier = require('html-minifier')
+const plugin = require('..')
+
 const minifierOpts = {
   removeComments: true,
   removeCommentsFromCDATA: true,
@@ -16,13 +18,13 @@ const minifierOpts = {
   removeEmptyAttributes: true
 }
 
-test('reply.view with ejs engine and custom templates folder', t => {
+test('reply.view with ejs engine and custom templates folder', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -50,13 +52,49 @@ test('reply.view with ejs engine and custom templates folder', t => {
   })
 })
 
-test('reply.view with ejs engine with layout option', t => {
+test('reply.view with ejs engine and custom templates folder after setting the `Content-Type` header', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
+    engine: {
+      ejs: ejs
+    },
+    templates: 'templates'
+  })
+
+  fastify.get('/', (req, reply) => {
+    reply
+      .header('Content-Type', 'text/html; charset=utf-8')
+      .view('index.ejs', data)
+  })
+
+  fastify.listen(0, err => {
+    t.error(err)
+
+    sget({
+      method: 'GET',
+      url: 'http://localhost:' + fastify.server.address().port
+    }, (err, response, body) => {
+      t.error(err)
+      t.equal(response.statusCode, 200)
+      t.equal(response.headers['content-length'], '' + body.length)
+      t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+      t.equal(ejs.render(fs.readFileSync('./templates/index.ejs', 'utf8'), data), body.toString())
+      fastify.close()
+    })
+  })
+})
+
+test('reply.view with ejs engine with layout option', (t) => {
+  t.plan(6)
+  const fastify = Fastify()
+  const ejs = require('ejs')
+  const data = { text: 'text' }
+
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -85,13 +123,13 @@ test('reply.view with ejs engine with layout option', t => {
   })
 })
 
-test('reply.view with ejs engine with layout option on render', t => {
+test('reply.view with ejs engine with layout option on render', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -119,12 +157,12 @@ test('reply.view with ejs engine with layout option on render', t => {
   })
 })
 
-test('reply.view should return 500 if layout is missing on render', t => {
+test('reply.view should return 500 if layout is missing on render', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs
     },
@@ -148,13 +186,13 @@ test('reply.view should return 500 if layout is missing on render', t => {
   })
 })
 
-test('reply.view with ejs engine and custom ext', t => {
+test('reply.view with ejs engine and custom ext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -183,13 +221,13 @@ test('reply.view with ejs engine and custom ext', t => {
   })
 })
 
-test('reply.view for ejs without data-parameter but defaultContext', t => {
+test('reply.view for ejs without data-parameter but defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -218,13 +256,13 @@ test('reply.view for ejs without data-parameter but defaultContext', t => {
   })
 })
 
-test('reply.view for ejs without data-parameter but defaultContext', t => {
+test('reply.view for ejs without data-parameter but defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -253,12 +291,12 @@ test('reply.view for ejs without data-parameter but defaultContext', t => {
   })
 })
 
-test('reply.view for ejs without data-parameter and without defaultContext', t => {
+test('reply.view for ejs without data-parameter and without defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -286,13 +324,13 @@ test('reply.view for ejs without data-parameter and without defaultContext', t =
   })
 })
 
-test('reply.view for ejs engine without data-parameter and defaultContext but with reply.locals', t => {
+test('reply.view for ejs engine without data-parameter and defaultContext but with reply.locals', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const localsData = { text: 'text from locals' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     }
@@ -324,14 +362,14 @@ test('reply.view for ejs engine without data-parameter and defaultContext but wi
   })
 })
 
-test('reply.view for ejs engine without defaultContext but with reply.locals and data-parameter', t => {
+test('reply.view for ejs engine without defaultContext but with reply.locals and data-parameter', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const localsData = { text: 'text from locals' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     }
@@ -363,14 +401,14 @@ test('reply.view for ejs engine without defaultContext but with reply.locals and
   })
 })
 
-test('reply.view for ejs engine without data-parameter but with reply.locals and defaultContext', t => {
+test('reply.view for ejs engine without data-parameter but with reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const localsData = { text: 'text from locals' }
   const contextData = { text: 'text from context' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -403,7 +441,7 @@ test('reply.view for ejs engine without data-parameter but with reply.locals and
   })
 })
 
-test('reply.view for ejs engine with data-parameter and reply.locals and defaultContext', t => {
+test('reply.view for ejs engine with data-parameter and reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -411,7 +449,7 @@ test('reply.view for ejs engine with data-parameter and reply.locals and default
   const contextData = { text: 'text from context' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -444,13 +482,13 @@ test('reply.view for ejs engine with data-parameter and reply.locals and default
   })
 })
 
-test('reply.view with ejs engine and full path templates folder', t => {
+test('reply.view with ejs engine and full path templates folder', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -478,13 +516,13 @@ test('reply.view with ejs engine and full path templates folder', t => {
   })
 })
 
-test('reply.view with ejs engine', t => {
+test('reply.view with ejs engine', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     }
@@ -511,13 +549,13 @@ test('reply.view with ejs engine', t => {
   })
 })
 
-test('reply.view with ejs engine and defaultContext', t => {
+test('reply.view with ejs engine and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -545,13 +583,13 @@ test('reply.view with ejs engine and defaultContext', t => {
   })
 })
 
-test('reply.view with ejs engine and html-minifier', t => {
+test('reply.view with ejs engine and html-minifier', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -581,13 +619,13 @@ test('reply.view with ejs engine and html-minifier', t => {
     })
   })
 })
-test('reply.view with ejs engine and paths excluded from html-minifier', t => {
+test('reply.view with ejs engine and paths excluded from html-minifier', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -619,13 +657,13 @@ test('reply.view with ejs engine and paths excluded from html-minifier', t => {
   })
 })
 
-test('reply.view with ejs engine and includeViewExtension property as true', t => {
+test('reply.view with ejs engine and includeViewExtension property as true', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -653,7 +691,7 @@ test('reply.view with ejs engine and includeViewExtension property as true', t =
   })
 })
 
-test('*** reply.view with ejs engine with layout option, includeViewExtension property as true ***', t => {
+test('*** reply.view with ejs engine with layout option, includeViewExtension property as true ***', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -661,7 +699,7 @@ test('*** reply.view with ejs engine with layout option, includeViewExtension pr
   const header = ''
   const footer = ''
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -699,7 +737,7 @@ test('*** reply.view with ejs engine with layout option, includeViewExtension pr
   })
 })
 
-test('*** reply.view with ejs engine with layout option on render, includeViewExtension property as true ***', t => {
+test('*** reply.view with ejs engine with layout option on render, includeViewExtension property as true ***', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -707,7 +745,7 @@ test('*** reply.view with ejs engine with layout option on render, includeViewEx
   const header = ''
   const footer = ''
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -744,7 +782,7 @@ test('*** reply.view with ejs engine with layout option on render, includeViewEx
   })
 })
 
-test('reply.view with ejs engine, template folder specified, include files (ejs and html) used in template, includeViewExtension property as true', t => {
+test('reply.view with ejs engine, template folder specified, include files (ejs and html) used in template, includeViewExtension property as true', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -756,7 +794,7 @@ test('reply.view with ejs engine, template folder specified, include files (ejs 
   }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -794,7 +832,7 @@ test('reply.view with ejs engine, template folder specified, include files (ejs 
   })
 })
 
-test('reply.view with ejs engine, templates with folder specified, include files and attributes; home', t => {
+test('reply.view with ejs engine, templates with folder specified, include files and attributes; home', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -806,7 +844,7 @@ test('reply.view with ejs engine, templates with folder specified, include files
   }
   const data = { text: 'Hello from EJS Templates' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -843,7 +881,7 @@ test('reply.view with ejs engine, templates with folder specified, include files
   })
 })
 
-test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with no data', t => {
+test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with no data', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -854,7 +892,7 @@ test('reply.view with ejs engine, templates with folder specified, include files
     views: [__dirname]
   }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -891,7 +929,7 @@ test('reply.view with ejs engine, templates with folder specified, include files
   })
 })
 
-test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with includes', t => {
+test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with includes', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -904,7 +942,7 @@ test('reply.view with ejs engine, templates with folder specified, include files
 
   const data = { text: 'Hello from EJS Templates' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -941,7 +979,7 @@ test('reply.view with ejs engine, templates with folder specified, include files
   })
 })
 
-test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with one include missing', t => {
+test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with one include missing', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -953,7 +991,7 @@ test('reply.view with ejs engine, templates with folder specified, include files
   }
   const data = { text: 'Hello from EJS Templates' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -990,7 +1028,7 @@ test('reply.view with ejs engine, templates with folder specified, include files
   })
 })
 
-test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with one attribute missing', t => {
+test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with one attribute missing', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -1002,7 +1040,7 @@ test('reply.view with ejs engine, templates with folder specified, include files
   }
   const data = { text: 'Hello from EJS Templates' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -1039,12 +1077,12 @@ test('reply.view with ejs engine, templates with folder specified, include files
   })
 })
 
-test('fastify.view with ejs engine, missing template file', t => {
+test('fastify.view with ejs engine, missing template file', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const ejs = require('ejs')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     }
@@ -1061,13 +1099,13 @@ test('fastify.view with ejs engine, missing template file', t => {
   })
 })
 
-test('fastify.view with ejs engine and callback in production mode', t => {
+test('fastify.view with ejs engine and callback in production mode', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },

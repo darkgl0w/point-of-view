@@ -5,14 +5,15 @@ const test = t.test
 const sget = require('simple-get').concat
 const Fastify = require('fastify')
 const path = require('path')
+const plugin = require('..')
 
-test('reply.view with art-template engine and custom templates folder', t => {
+test('reply.view with art-template engine and custom templates folder', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const art = require('art-template')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     },
@@ -43,12 +44,51 @@ test('reply.view with art-template engine and custom templates folder', t => {
   })
 })
 
-test('reply.view for art-template without data-parameter and defaultContext', t => {
+test('reply.view with art-template engine after setting the `Content-Type` header', (t) => {
+  t.plan(6)
+  const fastify = Fastify()
+  const art = require('art-template')
+  const data = { text: 'text' }
+
+  fastify.register(plugin, {
+    engine: {
+      'art-template': art
+    },
+    templates: 'templates'
+  })
+
+  fastify.get('/', (req, reply) => {
+    reply
+      .header('Content-Type', 'text/html; charset=utf-8')
+      .view('./index.art', data)
+  })
+
+  fastify.listen(10086, err => {
+    t.error(err)
+
+    sget({
+      method: 'GET',
+      url: 'http://127.0.0.1:10086/'
+    }, (err, response, body) => {
+      t.error(err)
+      t.equal(response.statusCode, 200)
+      t.equal(response.headers['content-length'], '' + body.length)
+      t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+
+      const templatePath = path.join(__dirname, '..', 'templates', 'index.art')
+
+      t.equal(art(templatePath, data), body.toString())
+      fastify.close()
+    })
+  })
+})
+
+test('reply.view for art-template without data-parameter and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const art = require('art-template')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     },
@@ -79,13 +119,13 @@ test('reply.view for art-template without data-parameter and defaultContext', t 
   })
 })
 
-test('reply.view for art-template without data-parameter but with defaultContext', t => {
+test('reply.view for art-template without data-parameter but with defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const art = require('art-template')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     },
@@ -117,13 +157,13 @@ test('reply.view for art-template without data-parameter but with defaultContext
   })
 })
 
-test('reply.view with art-template engine and defaultContext', t => {
+test('reply.view with art-template engine and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const art = require('art-template')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     },
@@ -155,13 +195,13 @@ test('reply.view with art-template engine and defaultContext', t => {
   })
 })
 
-test('reply.view for art-template engine without data-parameter and defaultContext but with reply.locals', t => {
+test('reply.view for art-template engine without data-parameter and defaultContext but with reply.locals', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const art = require('art-template')
   const localsData = { text: 'text from locals' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     }
@@ -196,14 +236,14 @@ test('reply.view for art-template engine without data-parameter and defaultConte
   })
 })
 
-test('reply.view for art-template engine without defaultContext but with reply.locals and data-parameter', t => {
+test('reply.view for art-template engine without defaultContext but with reply.locals and data-parameter', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const art = require('art-template')
   const localsData = { text: 'text from locals' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     }
@@ -238,14 +278,14 @@ test('reply.view for art-template engine without defaultContext but with reply.l
   })
 })
 
-test('reply.view for art-template engine without data-parameter but with reply.locals and defaultContext', t => {
+test('reply.view for art-template engine without data-parameter but with reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const art = require('art-template')
   const localsData = { text: 'text from locals' }
   const contextData = { text: 'text from context' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     },
@@ -281,7 +321,7 @@ test('reply.view for art-template engine without data-parameter but with reply.l
   })
 })
 
-test('reply.view for art-template engine with data-parameter and reply.locals and defaultContext', t => {
+test('reply.view for art-template engine with data-parameter and reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const art = require('art-template')
@@ -289,7 +329,7 @@ test('reply.view for art-template engine with data-parameter and reply.locals an
   const contextData = { text: 'text from context' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     },
@@ -325,14 +365,14 @@ test('reply.view for art-template engine with data-parameter and reply.locals an
   })
 })
 
-test('reply.view with art-template engine and full path templates folder', t => {
+test('reply.view with art-template engine and full path templates folder', (t) => {
   t.plan(6)
 
   const fastify = Fastify()
   const art = require('art-template')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     },
@@ -363,14 +403,14 @@ test('reply.view with art-template engine and full path templates folder', t => 
   })
 })
 
-test('reply.view with art-template engine and includeViewExtension is true', t => {
+test('reply.view with art-template engine and includeViewExtension is true', (t) => {
   t.plan(6)
 
   const fastify = Fastify()
   const art = require('art-template')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     },
@@ -401,14 +441,14 @@ test('reply.view with art-template engine and includeViewExtension is true', t =
   })
 })
 
-test('fastify.view with art-template engine and full path templates folder', t => {
+test('fastify.view with art-template engine and full path templates folder', (t) => {
   t.plan(6)
 
   const fastify = Fastify()
   const art = require('art-template')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     },
@@ -441,12 +481,12 @@ test('fastify.view with art-template engine and full path templates folder', t =
   })
 })
 
-test('fastify.view with art-template should throw page missing', t => {
+test('fastify.view with art-template should throw page missing', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const art = require('art-template')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     }
@@ -463,14 +503,14 @@ test('fastify.view with art-template should throw page missing', t => {
   })
 })
 
-test('reply.view with art-template should return 500 if render fails', t => {
+test('reply.view with art-template should return 500 if render fails', (t) => {
   t.plan(4)
   const fastify = Fastify()
   const art = {
     compile: () => { throw Error('Compile Error') }
   }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       'art-template': art
     }

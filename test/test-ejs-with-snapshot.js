@@ -6,19 +6,21 @@ const sget = require('simple-get').concat
 const Fastify = require('fastify')
 const path = require('path')
 const ejs = require('ejs')
+const plugin = require('..')
+
 const templatesFolder = 'templates'
 const options = {
   filename: path.resolve(templatesFolder),
   views: [path.join(__dirname, '..')]
 }
 
-test('reply.view with ejs engine, template folder specified, include files (ejs and html) used in template, includeViewExtension property as true; requires TAP snapshots enabled', t => {
+test('reply.view with ejs engine, template folder specified, include files (ejs and html) used in template, includeViewExtension property as true; requires TAP snapshots enabled', (t) => {
   t.plan(8)
   const fastify = Fastify()
 
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -56,13 +58,13 @@ test('reply.view with ejs engine, template folder specified, include files (ejs 
   })
 })
 
-test('reply.view with ejs engine, templates with folder specified, include files and attributes; requires TAP snapshots enabled; home', t => {
+test('reply.view with ejs engine, templates with folder specified, include files and attributes; requires TAP snapshots enabled; home', (t) => {
   t.plan(8)
   const fastify = Fastify()
 
   const data = { text: 'Hello from EJS Templates' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -100,13 +102,13 @@ test('reply.view with ejs engine, templates with folder specified, include files
   })
 })
 
-test('reply.view with ejs engine, templates with folder specified, include files and attributes; requires TAP snapshots enabled; page with includes', t => {
+test('reply.view with ejs engine, templates with folder specified, include files and attributes; requires TAP snapshots enabled; page with includes', (t) => {
   t.plan(8)
   const fastify = Fastify()
 
   const data = { text: 'Hello from EJS Templates' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -144,13 +146,13 @@ test('reply.view with ejs engine, templates with folder specified, include files
   })
 })
 
-test('reply.view with ejs engine, templates with folder specified, include files and attributes; requires TAP snapshots enabled; page with one include missing', t => {
+test('reply.view with ejs engine, templates with folder specified, include files and attributes; requires TAP snapshots enabled; page with one include missing', (t) => {
   t.plan(8)
   const fastify = Fastify()
 
   const data = { text: 'Hello from EJS Templates' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -188,13 +190,13 @@ test('reply.view with ejs engine, templates with folder specified, include files
   })
 })
 
-test('reply.view with ejs engine, templates with folder specified, include files and attributes; requires TAP snapshots enabled; page with one attribute missing', t => {
+test('reply.view with ejs engine, templates with folder specified, include files and attributes; requires TAP snapshots enabled; page with one attribute missing', (t) => {
   t.plan(8)
   const fastify = Fastify()
 
   const data = { text: 'Hello from EJS Templates' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },

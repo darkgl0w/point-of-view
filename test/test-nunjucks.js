@@ -5,17 +5,18 @@ const test = t.test
 const sget = require('simple-get').concat
 const Fastify = require('fastify')
 const path = require('path')
+const plugin = require('..')
 
 require('./helper').nunjucksHtmlMinifierTests(t, true)
 require('./helper').nunjucksHtmlMinifierTests(t, false)
 
-test('reply.view with nunjucks engine and custom templates folder', t => {
+test('reply.view with nunjucks engine and custom templates folder', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     }
@@ -42,13 +43,13 @@ test('reply.view with nunjucks engine and custom templates folder', t => {
   })
 })
 
-test('reply.view for nunjucks engine without data-parameter but defaultContext', t => {
+test('reply.view for nunjucks engine without data-parameter but defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     },
@@ -76,12 +77,12 @@ test('reply.view for nunjucks engine without data-parameter but defaultContext',
   })
 })
 
-test('reply.view for nunjucks engine without data-parameter and without defaultContext', t => {
+test('reply.view for nunjucks engine without data-parameter and without defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     }
@@ -108,13 +109,13 @@ test('reply.view for nunjucks engine without data-parameter and without defaultC
   })
 })
 
-test('reply.view for nunjucks engine without data-parameter and defaultContext but with reply.locals', t => {
+test('reply.view for nunjucks engine without data-parameter and defaultContext but with reply.locals', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
   const localsData = { text: 'text from locals' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     }
@@ -146,14 +147,14 @@ test('reply.view for nunjucks engine without data-parameter and defaultContext b
   })
 })
 
-test('reply.view for nunjucks engine without defaultContext but with reply.locals and data-parameter', t => {
+test('reply.view for nunjucks engine without defaultContext but with reply.locals and data-parameter', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
   const localsData = { text: 'text from locals' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     }
@@ -185,14 +186,14 @@ test('reply.view for nunjucks engine without defaultContext but with reply.local
   })
 })
 
-test('reply.view for nunjucks engine without data-parameter but with reply.locals and defaultContext', t => {
+test('reply.view for nunjucks engine without data-parameter but with reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
   const localsData = { text: 'text from locals' }
   const contextData = { text: 'text from context' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     },
@@ -225,7 +226,7 @@ test('reply.view for nunjucks engine without data-parameter but with reply.local
   })
 })
 
-test('reply.view for nunjucks engine with data-parameter and reply.locals and defaultContext', t => {
+test('reply.view for nunjucks engine with data-parameter and reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
@@ -233,7 +234,7 @@ test('reply.view for nunjucks engine with data-parameter and reply.locals and de
   const contextData = { text: 'text from context' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     },
@@ -266,13 +267,13 @@ test('reply.view for nunjucks engine with data-parameter and reply.locals and de
   })
 })
 
-test('reply.view with nunjucks engine and full path templates folder', t => {
+test('reply.view with nunjucks engine and full path templates folder', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     },
@@ -301,13 +302,13 @@ test('reply.view with nunjucks engine and full path templates folder', t => {
   })
 })
 
-test('reply.view with nunjucks engine and includeViewExtension is true', t => {
+test('reply.view with nunjucks engine and includeViewExtension is true', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     },
@@ -336,13 +337,13 @@ test('reply.view with nunjucks engine and includeViewExtension is true', t => {
   })
 })
 
-test('reply.view with nunjucks engine using onConfigure callback', t => {
+test('reply.view with nunjucks engine using onConfigure callback', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     },
@@ -376,13 +377,13 @@ test('reply.view with nunjucks engine using onConfigure callback', t => {
   })
 })
 
-test('fastify.view with nunjucks engine', t => {
+test('fastify.view with nunjucks engine', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     }
@@ -408,12 +409,12 @@ test('fastify.view with nunjucks engine', t => {
   })
 })
 
-test('fastify.view with nunjucks should throw page missing', t => {
+test('fastify.view with nunjucks should throw page missing', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const nunjucks = require('nunjucks')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     }
@@ -430,7 +431,7 @@ test('fastify.view with nunjucks should throw page missing', t => {
   })
 })
 
-test('fastify.view with nunjucks engine should return 500 if render fails', t => {
+test('fastify.view with nunjucks engine should return 500 if render fails', (t) => {
   t.plan(4)
   const fastify = Fastify()
   const nunjucks = {
@@ -439,7 +440,7 @@ test('fastify.view with nunjucks engine should return 500 if render fails', t =>
     })
   }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       nunjucks: nunjucks
     }

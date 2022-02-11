@@ -7,17 +7,18 @@ const Fastify = require('fastify')
 const fs = require('fs')
 const { join } = require('path')
 const proxyquire = require('proxyquire')
+const plugin = require('..')
 
 require('./helper').handleBarsHtmlMinifierTests(t, true)
 require('./helper').handleBarsHtmlMinifierTests(t, false)
 
-test('fastify.view with handlebars engine', t => {
+test('fastify.view with handlebars engine', (t) => {
   t.plan(2)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -33,13 +34,13 @@ test('fastify.view with handlebars engine', t => {
   })
 })
 
-test('fastify.view for handlebars without data-parameter but defaultContext', t => {
+test('fastify.view for handlebars without data-parameter but defaultContext', (t) => {
   t.plan(2)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -56,12 +57,12 @@ test('fastify.view for handlebars without data-parameter but defaultContext', t 
   })
 })
 
-test('fastify.view for handlebars without data-parameter and without defaultContext', t => {
+test('fastify.view for handlebars without data-parameter and without defaultContext', (t) => {
   t.plan(2)
   const fastify = Fastify()
   const handlebars = require('handlebars')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -77,14 +78,14 @@ test('fastify.view for handlebars without data-parameter and without defaultCont
   })
 })
 
-test('fastify.view with handlebars engine and defaultContext', t => {
+test('fastify.view with handlebars engine and defaultContext', (t) => {
   t.plan(2)
   const fastify = Fastify()
   const handlebars = require('handlebars')
 
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -101,13 +102,13 @@ test('fastify.view with handlebars engine and defaultContext', t => {
   })
 })
 
-test('reply.view for handlebars engine without data-parameter and defaultContext but with reply.locals', t => {
+test('reply.view for handlebars engine without data-parameter and defaultContext but with reply.locals', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const localsData = { text: 'text from locals' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -139,14 +140,14 @@ test('reply.view for handlebars engine without data-parameter and defaultContext
   })
 })
 
-test('reply.view for handlebars engine without defaultContext but with reply.locals and data-parameter', t => {
+test('reply.view for handlebars engine without defaultContext but with reply.locals and data-parameter', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const localsData = { text: 'text from locals' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -178,14 +179,14 @@ test('reply.view for handlebars engine without defaultContext but with reply.loc
   })
 })
 
-test('reply.view for handlebars engine without data-parameter but with reply.locals and defaultContext', t => {
+test('reply.view for handlebars engine without data-parameter but with reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const localsData = { text: 'text from locals' }
   const contextData = { text: 'text from context' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -218,7 +219,7 @@ test('reply.view for handlebars engine without data-parameter but with reply.loc
   })
 })
 
-test('reply.view for handlebars engine with data-parameter and reply.locals and defaultContext', t => {
+test('reply.view for handlebars engine with data-parameter and reply.locals and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
@@ -226,7 +227,7 @@ test('reply.view for handlebars engine with data-parameter and reply.locals and 
   const contextData = { text: 'text from context' }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -259,13 +260,13 @@ test('reply.view for handlebars engine with data-parameter and reply.locals and 
   })
 })
 
-test('fastify.view with handlebars engine and callback', t => {
+test('fastify.view with handlebars engine and callback', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -282,14 +283,14 @@ test('fastify.view with handlebars engine and callback', t => {
   })
 })
 
-test('fastify.view with handlebars engine with layout option', t => {
+test('fastify.view with handlebars engine with layout option', (t) => {
   t.plan(3)
 
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'it works!' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars
     },
@@ -307,14 +308,14 @@ test('fastify.view with handlebars engine with layout option', t => {
   })
 })
 
-test('fastify.view with handlebars engine with layout option on render', t => {
+test('fastify.view with handlebars engine with layout option on render', (t) => {
   t.plan(3)
 
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'it works!' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars
     }
@@ -331,14 +332,14 @@ test('fastify.view with handlebars engine with layout option on render', t => {
   })
 })
 
-test('fastify.view with handlebars engine with invalid layout option on render should throw', t => {
+test('fastify.view with handlebars engine with invalid layout option on render should throw', (t) => {
   t.plan(3)
 
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'it works!' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars
     }
@@ -353,13 +354,13 @@ test('fastify.view with handlebars engine with invalid layout option on render s
   })
 })
 
-test('reply.view with handlebars engine', t => {
+test('reply.view with handlebars engine', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -386,14 +387,14 @@ test('reply.view with handlebars engine', t => {
   })
 })
 
-test('reply.view with handlebars engine catches render error', t => {
+test('reply.view with handlebars engine catches render error', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const handlebars = require('handlebars')
 
   handlebars.registerHelper('badHelper', () => { throw new Error('kaboom') })
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -413,13 +414,13 @@ test('reply.view with handlebars engine catches render error', t => {
   })
 })
 
-test('reply.view with handlebars engine and defaultContext', t => {
+test('reply.view with handlebars engine and defaultContext', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -447,13 +448,13 @@ test('reply.view with handlebars engine and defaultContext', t => {
   })
 })
 
-test('reply.view with ejs engine and includeViewExtension property as true', t => {
+test('reply.view with ejs engine and includeViewExtension property as true', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -481,7 +482,7 @@ test('reply.view with ejs engine and includeViewExtension property as true', t =
   })
 })
 
-test('reply.view with ejs engine, template folder specified, include files (ejs and html) used in template, includeViewExtension property as true', t => {
+test('reply.view with ejs engine, template folder specified, include files (ejs and html) used in template, includeViewExtension property as true', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -493,7 +494,7 @@ test('reply.view with ejs engine, template folder specified, include files (ejs 
   }
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -531,7 +532,7 @@ test('reply.view with ejs engine, template folder specified, include files (ejs 
   })
 })
 
-test('reply.view with ejs engine, templates with folder specified, include files and attributes; home', t => {
+test('reply.view with ejs engine, templates with folder specified, include files and attributes; home', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const ejs = require('ejs')
@@ -543,7 +544,7 @@ test('reply.view with ejs engine, templates with folder specified, include files
   }
   const data = { text: 'Hello from EJS Templates' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -580,13 +581,13 @@ test('reply.view with ejs engine, templates with folder specified, include files
   })
 })
 
-test('reply.view with handlebars engine and includeViewExtension property as true', t => {
+test('reply.view with handlebars engine and includeViewExtension property as true', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -614,13 +615,86 @@ test('reply.view with handlebars engine and includeViewExtension property as tru
   })
 })
 
-test('fastify.view with handlebars engine and callback in production mode', t => {
+test('reply.view with handlebars engine and includeViewExtension property as true after setting the `Content-Type` header', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
+    engine: {
+      handlebars: handlebars
+    },
+    includeViewExtension: true
+  })
+
+  fastify.get('/', (req, reply) => {
+    reply
+      .header('Content-Type', 'text/html; charset=utf-8')
+      .view('./templates/index', data)
+  })
+
+  fastify.listen(0, err => {
+    t.error(err)
+
+    sget({
+      method: 'GET',
+      url: 'http://localhost:' + fastify.server.address().port
+    }, (err, response, body) => {
+      t.error(err)
+      t.equal(response.statusCode, 200)
+      t.equal(response.headers['content-length'], '' + body.length)
+      t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+      t.equal(handlebars.compile(fs.readFileSync('./templates/index.hbs', 'utf8'))(data), body.toString())
+      fastify.close()
+    })
+  })
+})
+
+test('reply.view with handlebars engine in production mode after setting the `Content-Type` header', (t) => {
+  t.plan(6)
+  const fastify = Fastify()
+  const handlebars = require('handlebars')
+  const data = { text: 'text' }
+
+  fastify.register(plugin, {
+    engine: {
+      handlebars: handlebars
+    },
+    includeViewExtension: true,
+    production: true
+  })
+
+  fastify.get('/', (req, reply) => {
+    reply
+      .header('Content-Type', 'text/html; charset=utf-8')
+      .view('./templates/index', data)
+  })
+
+  fastify.listen(0, err => {
+    t.error(err)
+
+    sget({
+      method: 'GET',
+      url: 'http://localhost:' + fastify.server.address().port
+    }, (err, response, body) => {
+      t.error(err)
+      t.equal(response.statusCode, 200)
+      t.equal(response.headers['content-length'], '' + body.length)
+      t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+      t.equal(handlebars.compile(fs.readFileSync('./templates/index.hbs', 'utf8'))(data), body.toString())
+      fastify.close()
+    })
+  })
+})
+
+test('fastify.view with handlebars engine and callback in production mode', (t) => {
+  t.plan(6)
+  const fastify = Fastify()
+  const handlebars = require('handlebars')
+  const data = { text: 'text' }
+
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -647,13 +721,13 @@ test('fastify.view with handlebars engine and callback in production mode', t =>
   })
 })
 
-test('reply.view with handlebars engine with partials', t => {
+test('reply.view with handlebars engine with partials', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -682,13 +756,13 @@ test('reply.view with handlebars engine with partials', t => {
   })
 })
 
-test('reply.view with handlebars engine with missing partials path', t => {
+test('reply.view with handlebars engine with missing partials path', (t) => {
   t.plan(5)
   const fastify = Fastify()
   const handlebars = require('handlebars')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -717,7 +791,7 @@ test('reply.view with handlebars engine with missing partials path', t => {
   })
 })
 
-test('reply.view with handlebars engine with partials in production mode should use cache', t => {
+test('reply.view with handlebars engine with partials in production mode should use cache', (t) => {
   t.plan(4)
   const fastify = Fastify()
   const handlebars = require('handlebars')
@@ -751,12 +825,12 @@ test('reply.view with handlebars engine with partials in production mode should 
   })
 })
 
-test('fastify.view with handlebars engine with missing partials path in production mode does not start', t => {
+test('fastify.view with handlebars engine with missing partials path in production mode does not start', (t) => {
   t.plan(2)
   const fastify = Fastify()
   const handlebars = require('handlebars')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -772,12 +846,12 @@ test('fastify.view with handlebars engine with missing partials path in producti
   })
 })
 
-test('reply.view with handlebars engine with layout option', t => {
+test('reply.view with handlebars engine with layout option', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     },
@@ -804,12 +878,12 @@ test('reply.view with handlebars engine with layout option', t => {
   })
 })
 
-test('reply.view with handlebars engine with layout option on render', t => {
+test('reply.view with handlebars engine with layout option on render', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const handlebars = require('handlebars')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -835,12 +909,12 @@ test('reply.view with handlebars engine with layout option on render', t => {
   })
 })
 
-test('reply.view should return 500 if layout is missing on render', t => {
+test('reply.view should return 500 if layout is missing on render', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const handlebars = require('handlebars')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -863,12 +937,12 @@ test('reply.view should return 500 if layout is missing on render', t => {
   })
 })
 
-test('fastify.view with handlebars engine, missing template file', t => {
+test('fastify.view with handlebars engine, missing template file', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const handlebars = require('handlebars')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -885,12 +959,12 @@ test('fastify.view with handlebars engine, missing template file', t => {
   })
 })
 
-test('fastify.view with handlebars engine should throw page missing', t => {
+test('fastify.view with handlebars engine should throw page missing', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const handlebars = require('handlebars')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: handlebars
     }
@@ -907,7 +981,7 @@ test('fastify.view with handlebars engine should throw page missing', t => {
   })
 })
 
-test('reply.view with handlebars engine should return 500 if template fails in production mode', t => {
+test('reply.view with handlebars engine should return 500 if template fails in production mode', (t) => {
   t.plan(4)
   const fastify = Fastify()
   const handlebars = require('handlebars')

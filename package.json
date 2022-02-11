@@ -3,12 +3,19 @@
   "version": "5.1.0",
   "description": "Template plugin for Fastify",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "example": "node example.js",
     "example-with-options": "node example-ejs-with-some-options.js",
-    "example-typescript": "npx ts-node test/index.test-d.ts",
+    "example-typescript": "npx ts-node test/types/index.test-d.ts",
+    "lint": "standard",
+    "lint:fix": "standard --fix",
     "test-with-snapshot": "cross-env TAP_SNAPSHOT=1 tap test/test-ejs-with-snapshot.js",
-    "test": "standard && tap -J test/*.js && tsd"
+    "test": "npm run lint && npm run unit && npm run test:types",
+    "test:types": "tsd",
+    "unit": "tap -J \"test/*.js\"",
+    "unit:report": "npm run unit -- --coverage-report=html",
+    "unit:verbose": "npm run unit -- -Rspec"
   },
   "repository": {
     "type": "git",
@@ -65,6 +72,6 @@
     "typescript": "^4.0.2"
   },
   "tsd": {
-    "directory": "test"
+    "directory": "test/types"
   }
 }
