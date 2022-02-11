@@ -1,6 +1,5 @@
 'use strict'
 
-const { resolve } = require('path')
 const t = require('tap')
 const test = t.test
 const Fastify = require('fastify')
