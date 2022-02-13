@@ -3,13 +3,14 @@
 const { resolve } = require('path')
 const t = require('tap')
 const test = t.test
-const sget = require('simple-get').concat
 const Fastify = require('fastify')
+const sget = require('simple-get').concat
+const plugin = require('..')
 
 require('./helper').liquidHtmlMinifierTests(t, true)
 require('./helper').liquidHtmlMinifierTests(t, false)
 
-test('reply.view with liquid engine', t => {
+test('reply.view with liquid engine', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
@@ -17,7 +18,7 @@ test('reply.view with liquid engine', t => {
 
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     }
@@ -48,7 +49,7 @@ test('reply.view with liquid engine', t => {
   })
 })
 
-test('reply.view with liquid engine without data-parameter but defaultContext', t => {
+test('reply.view with liquid engine after setting the `Content-Type` header', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
@@ -56,7 +57,48 @@ test('reply.view with liquid engine without data-parameter but defaultContext', 
 
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
+    engine: {
+      liquid: engine
+    }
+  })
+
+  fastify.get('/', (req, reply) => {
+    reply
+      .header('Content-Type', 'text/html; charset=utf-8')
+      .view('./templates/index.liquid', data)
+  })
+
+  fastify.listen(0, err => {
+    t.error(err)
+
+    sget({
+      method: 'GET',
+      url: 'http://localhost:' + fastify.server.address().port
+    }, (err, response, body) => {
+      t.error(err)
+      t.equal(response.statusCode, 200)
+      t.equal(response.headers['content-length'], '' + body.length)
+      t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+      engine.renderFile('./templates/index.liquid', data)
+        .then((html) => {
+          t.error(err)
+          t.equal(html, body.toString())
+        })
+      fastify.close()
+    })
+  })
+})
+
+test('reply.view with liquid engine without data-parameter but defaultContext', (t) => {
+  t.plan(7)
+  const fastify = Fastify()
+  const { Liquid } = require('liquidjs')
+  const data = { text: 'text' }
+
+  const engine = new Liquid()
+
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     },
@@ -88,14 +130,14 @@ test('reply.view with liquid engine without data-parameter but defaultContext', 
   })
 })
 
-test('reply.view with liquid engine without data-parameter but without defaultContext', t => {
+test('reply.view with liquid engine without data-parameter but without defaultContext', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
 
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     }
@@ -126,7 +168,7 @@ test('reply.view with liquid engine without data-parameter but without defaultCo
   })
 })
 
-test('reply.view with liquid engine with data-parameter and defaultContext', t => {
+test('reply.view with liquid engine with data-parameter and defaultContext', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
@@ -134,7 +176,7 @@ test('reply.view with liquid engine with data-parameter and defaultContext', t =
 
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     },
@@ -166,7 +208,7 @@ test('reply.view with liquid engine with data-parameter and defaultContext', t =
   })
 })
 
-test('reply.view for liquid engine without data-parameter and defaultContext but with reply.locals', t => {
+test('reply.view for liquid engine without data-parameter and defaultContext but with reply.locals', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
@@ -174,7 +216,7 @@ test('reply.view for liquid engine without data-parameter and defaultContext but
 
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     }
@@ -210,7 +252,7 @@ test('reply.view for liquid engine without data-parameter and defaultContext but
   })
 })
 
-test('reply.view for liquid engine without defaultContext but with reply.locals and data-parameter', t => {
+test('reply.view for liquid engine without defaultContext but with reply.locals and data-parameter', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
@@ -219,7 +261,7 @@ test('reply.view for liquid engine without defaultContext but with reply.locals 
 
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     }
@@ -255,7 +297,7 @@ test('reply.view for liquid engine without defaultContext but with reply.locals 
   })
 })
 
-test('reply.view for liquid engine without data-parameter but with reply.locals and defaultContext', t => {
+test('reply.view for liquid engine without data-parameter but with reply.locals and defaultContext', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
@@ -264,7 +306,7 @@ test('reply.view for liquid engine without data-parameter but with reply.locals 
 
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     },
@@ -301,7 +343,7 @@ test('reply.view for liquid engine without data-parameter but with reply.locals 
   })
 })
 
-test('reply.view for liquid engine with data-parameter and reply.locals and defaultContext', t => {
+test('reply.view for liquid engine with data-parameter and reply.locals and defaultContext', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
@@ -311,7 +353,7 @@ test('reply.view for liquid engine with data-parameter and reply.locals and defa
 
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     },
@@ -348,7 +390,7 @@ test('reply.view for liquid engine with data-parameter and reply.locals and defa
   })
 })
 
-test('reply.view with liquid engine and custom tag', t => {
+test('reply.view with liquid engine and custom tag', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
@@ -367,7 +409,7 @@ test('reply.view with liquid engine and custom tag', t => {
     }
   })
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     }
@@ -398,7 +440,7 @@ test('reply.view with liquid engine and custom tag', t => {
   })
 })
 
-test('reply.view with liquid engine and double quoted variable', t => {
+test('reply.view with liquid engine and double quoted variable', (t) => {
   t.plan(7)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
@@ -406,7 +448,7 @@ test('reply.view with liquid engine and double quoted variable', t => {
 
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     }
@@ -437,13 +479,13 @@ test('reply.view with liquid engine and double quoted variable', t => {
   })
 })
 
-test('fastify.view with liquid engine, should throw page missing', t => {
+test('fastify.view with liquid engine, should throw page missing', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     }
@@ -460,13 +502,13 @@ test('fastify.view with liquid engine, should throw page missing', t => {
   })
 })
 
-test('fastify.view with liquid engine template that does not exist errors correctly', t => {
+test('fastify.view with liquid engine template that does not exist errors correctly', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const { Liquid } = require('liquidjs')
   const engine = new Liquid()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       liquid: engine
     }
@@ -603,4 +645,3 @@ test('reply.view with liquid engine, should allow absolute path for multiple roo
     })
   })
 })
-
