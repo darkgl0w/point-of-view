@@ -7,12 +7,13 @@ const sget = require('simple-get').concat
 const path = require('path')
 const fs = require('fs')
 const Fastify = require('fastify')
+const plugin = require('..')
 
-test('fastify.view exist', t => {
+test('fastify.view exist', (t) => {
   t.plan(2)
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: require('ejs')
     }
@@ -26,11 +27,11 @@ test('fastify.view exist', t => {
   })
 })
 
-test('fastify.view.clearCache exist', t => {
+test('fastify.view.clearCache exist', (t) => {
   t.plan(2)
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: require('ejs')
     }
@@ -44,7 +45,7 @@ test('fastify.view.clearCache exist', t => {
   })
 })
 
-test('fastify.view.clearCache clears cache', t => {
+test('fastify.view.clearCache clears cache', (t) => {
   t.plan(13)
   const templatesFolder = path.join(os.tmpdir(), 'fastify')
   try {
@@ -53,7 +54,7 @@ test('fastify.view.clearCache clears cache', t => {
   fs.writeFileSync(path.join(templatesFolder, 'cache_clear_test.ejs'), '<html><body><span>123</span></body></<html>')
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: require('ejs')
     },
@@ -102,11 +103,11 @@ test('fastify.view.clearCache clears cache', t => {
   })
 })
 
-test('reply.view exist', t => {
+test('reply.view exist', (t) => {
   t.plan(6)
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: require('ejs')
     }
@@ -133,13 +134,13 @@ test('reply.view exist', t => {
   })
 })
 
-test('reply.view can be returned from async function to indicate response processing finished', t => {
+test('reply.view can be returned from async function to indicate response processing finished', (t) => {
   t.plan(6)
   const fastify = Fastify()
   const ejs = require('ejs')
   const data = { text: 'text' }
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -168,11 +169,11 @@ test('reply.view can be returned from async function to indicate response proces
   })
 })
 
-test('Possibility to access res.locals variable across all views', t => {
+test('Possibility to access res.locals variable across all views', (t) => {
   t.plan(6)
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: require('ejs')
     },
@@ -208,11 +209,11 @@ test('Possibility to access res.locals variable across all views', t => {
   })
 })
 
-test('Default extension for ejs', t => {
+test('Default extension for ejs', (t) => {
   t.plan(6)
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: require('ejs')
     },
@@ -241,12 +242,12 @@ test('Default extension for ejs', t => {
   })
 })
 
-test('reply.view with ejs engine and custom propertyName', t => {
+test('reply.view with ejs engine and custom propertyName', (t) => {
   t.plan(11)
   const fastify = Fastify()
   const ejs = require('ejs')
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -254,7 +255,7 @@ test('reply.view with ejs engine and custom propertyName', t => {
     layout: 'layout.html',
     propertyName: 'mobile'
   })
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: ejs
     },
@@ -297,11 +298,11 @@ test('reply.view with ejs engine and custom propertyName', t => {
   })
 })
 
-test('reply.view should return 500 if page is missing', t => {
+test('reply.view should return 500 if page is missing', (t) => {
   t.plan(3)
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: require('ejs')
     }
@@ -325,11 +326,11 @@ test('reply.view should return 500 if page is missing', t => {
   })
 })
 
-test('reply.view should return 500 if layout is set globally and provided on render', t => {
+test('reply.view should return 500 if layout is set globally and provided on render', (t) => {
   t.plan(3)
   const fastify = Fastify()
   const data = { text: 'text' }
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: require('ejs'),
       layout: 'layout.html'
@@ -354,11 +355,45 @@ test('reply.view should return 500 if layout is set globally and provided on ren
   })
 })
 
-test('register callback should throw if the engine is missing', t => {
+test('reply.view should throw if layout is set globally and provided on render with `eta` engine', async (t) => {
+  t.plan(2)
+
+  const fastify = Fastify()
+  t.teardown(fastify.close.bind(fastify))
+
+  await fastify.register(plugin, {
+    engine: {
+      eta: require('eta')
+    },
+    root: path.join(__dirname, '../templates'),
+    layout: 'layout-eta.html'
+  })
+
+  const data = { text: 'text' }
+  fastify.get('/', (req, reply) => {
+    reply.view('index-for-layout.eta', data, { layout: 'layout-eta.html' })
+  })
+
+  await fastify.ready()
+
+  const response = await fastify.inject({
+    method: 'GET',
+    url: '/'
+  })
+  const payload = JSON.parse(response.payload)
+
+  t.equal(response.statusCode, 500)
+  t.equal(
+    payload.message,
+    'A layout can either be set globally or on render, not both.'
+  )
+})
+
+test('register callback should throw if the engine is missing', (t) => {
   t.plan(2)
   const fastify = Fastify()
 
-  fastify.register(require('../index'))
+  fastify.register(plugin)
 
   fastify.ready(err => {
     t.ok(err instanceof Error)
@@ -366,11 +401,11 @@ test('register callback should throw if the engine is missing', t => {
   })
 })
 
-test('register callback should throw if the engine is not supported', t => {
+test('register callback should throw if the engine is not supported', (t) => {
   t.plan(2)
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       notSupported: null
     }
@@ -380,11 +415,11 @@ test('register callback should throw if the engine is not supported', t => {
   })
 })
 
-test('register callback with handlebars engine should throw if layout file does not exist', t => {
+test('register callback with handlebars engine should throw if layout file does not exist', (t) => {
   t.plan(2)
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       handlebars: require('handlebars')
     },
@@ -395,11 +430,11 @@ test('register callback with handlebars engine should throw if layout file does 
   })
 })
 
-test('register callback should throw if layout option provided with wrong engine', t => {
+test('register callback should throw if layout option provided with wrong engine', (t) => {
   t.plan(2)
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       pug: require('pug')
     },
@@ -410,11 +445,11 @@ test('register callback should throw if layout option provided with wrong engine
   })
 })
 
-test('plugin is registered with "point-of-view" name', t => {
+test('plugin is registered with "point-of-view" name', (t) => {
   t.plan(2)
   const fastify = Fastify()
 
-  fastify.register(require('../index'), {
+  fastify.register(plugin, {
     engine: {
       ejs: require('ejs')
     }
