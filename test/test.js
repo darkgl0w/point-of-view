@@ -376,7 +376,7 @@ test('register callback should throw if the engine is not supported', t => {
     }
   }).ready(err => {
     t.ok(err instanceof Error)
-    t.equal(err.message, '\'notSupported\' not yet supported, PR? :)')
+    t.equal(err.message, '\'notSupported\' is not yet supported. Would you like to send a PR ? :)')
   })
 })
 
