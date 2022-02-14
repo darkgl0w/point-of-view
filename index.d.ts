@@ -1,37 +1,38 @@
-import { FastifyPlugin, FastifyReply, RawServerBase } from 'fastify';
+import { FastifyPluginCallback } from 'fastify';
 
-declare module "fastify" {
+declare module 'fastify' {
   interface FastifyReply {
-    view<T extends { [key: string]: any; }>(page: string, data: T): FastifyReply;
-    view(page: string, data?: object): FastifyReply;
+    view<T extends { [key: string]: any; }>(page: string, data: T): this;
+    view(page: string, data?: object): this;
   }
 }
 
 export interface PointOfViewOptions {
+  charset?: string;
+  defaultContext?: object;
   engine: {
+    'art-template'?: any;
+    dot?: any;
     ejs?: any;
     eta?: any;
+    handlebars?: any;
+    liquid?: any;
+    mustache?: any;
     nunjucks?: any;
     pug?: any;
-    handlebars?: any;
-    mustache?: any;
-    'art-template'?: any;
     twig?: any;
-    liquid?: any;
-    dot?: any;
   };
-  templates?: string;
   includeViewExtension?: boolean;
-  options?: object;
-  charset?: string;
-  maxCache?: number;
-  production?: boolean;
-  defaultContext?: object;
   layout?: string;
-  root?: string;
-  viewExt?: string;
+  maxCache?: number;
+  options?: object;
+  production?: boolean;
   propertyName?: string;
+  root?: string;
+  templates?: string;
+  viewExt?: string;
 }
 
-declare const pointOfView: FastifyPlugin<PointOfViewOptions>;
+declare const pointOfView: FastifyPluginCallback<PointOfViewOptions>;
+export { pointOfView };
 export default pointOfView;

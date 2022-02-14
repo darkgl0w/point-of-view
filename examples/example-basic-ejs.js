@@ -1,23 +1,22 @@
 'use strict'
 
-process.env.NODE_ENV = 'production'
-
 const Fastify = require('fastify')
+const ejsEngine = require('ejs')
+// const pointOfView = require('point-of-view')
 const pointOfView = require('..')
 
-const fastify = Fastify()
+const fastify = Fastify({ logger: true })
 
 fastify.register(pointOfView, {
   engine: {
-    ejs: require('ejs')
+    ejs: ejsEngine
   }
 })
 
 fastify.get('/', (request, reply) => {
-  reply.view('../templates/index.ejs', { text: 'text' })
+  reply.view('/templates/index.ejs', { text: 'text' })
 })
 
 fastify.listen(3000, (err) => {
   if (err) throw err
-  console.log(`server listening on ${fastify.server.address().port}`)
 })

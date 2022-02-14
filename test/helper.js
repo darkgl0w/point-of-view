@@ -1,9 +1,7 @@
 'use strict'
 
-const POV = require('..')
-const Fastify = require('fastify')
-const minifier = require('html-minifier')
-const fs = require('fs')
+const { readFileSync } = require('fs')
+
 const dot = require('dot')
 const eta = require('eta')
 const handlebars = require('handlebars')
@@ -11,7 +9,10 @@ const { Liquid } = require('liquidjs')
 const nunjucks = require('nunjucks')
 const pug = require('pug')
 const Twig = require('twig')
-const sget = require('simple-get').concat
+
+const Fastify = require('fastify')
+const minifier = require('html-minifier')
+const plugin = require('..')
 
 const data = { text: 'text' }
 const minifierOpts = {
@@ -24,15 +25,18 @@ const minifierOpts = {
 }
 
 module.exports.dotHtmlMinifierTests = function (t, compileOptions, withMinifierOptions) {
-  const test = t.test
+  const { test } = t
   const options = withMinifierOptions ? minifierOpts : {}
 
-  test('reply.view with dot engine and html-minifier', t => {
-    t.plan(6)
+  test('reply.view with dot engine and html-minifier', async (t) => {
+    t.plan(4)
+
     const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
     dot.log = false
 
-    fastify.register(POV, {
+    await fastify.register(plugin, {
       engine: {
         dot: dot
       },
@@ -43,32 +47,32 @@ module.exports.dotHtmlMinifierTests = function (t, compileOptions, withMinifierO
       }
     })
 
-    fastify.get('/', (req, reply) => {
+    fastify.get('/', (request, reply) => {
       reply.view('testdot', data)
     })
 
-    fastify.listen(0, err => {
-      t.error(err)
+    await fastify.ready()
 
-      sget({
-        method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port
-      }, (err, response, body) => {
-        t.error(err)
-        t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
-        t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-        t.equal(minifier.minify(dot.process(compileOptions).testdot(data), options), body.toString())
-        fastify.close()
-      })
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/'
     })
+
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+    t.equal(response.body.toString(), minifier.minify(dot.process(compileOptions).testdot(data), options))
   })
-  test('reply.view with dot engine and paths excluded from html-minifier', t => {
-    t.plan(6)
+
+  test('reply.view with dot engine and paths excluded from html-minifier', async (t) => {
+    t.plan(4)
+
     const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
     dot.log = false
 
-    fastify.register(POV, {
+    await fastify.register(plugin, {
       engine: {
         dot: dot
       },
@@ -80,37 +84,35 @@ module.exports.dotHtmlMinifierTests = function (t, compileOptions, withMinifierO
       }
     })
 
-    fastify.get('/test', (req, reply) => {
+    fastify.get('/test', (request, reply) => {
       reply.view('testdot', data)
     })
 
-    fastify.listen(0, err => {
-      t.error(err)
+    await fastify.ready()
 
-      sget({
-        method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port + '/test'
-      }, (err, response, body) => {
-        t.error(err)
-        t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
-        t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-        t.equal(dot.process(compileOptions).testdot(data), body.toString())
-        fastify.close()
-      })
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/test'
     })
+
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+    t.equal(response.body.toString(), dot.process(compileOptions).testdot(data))
   })
 }
 
 module.exports.etaHtmlMinifierTests = function (t, withMinifierOptions) {
-  const test = t.test
+  const { test } = t
   const options = withMinifierOptions ? minifierOpts : {}
 
-  test('reply.view with eta engine and html-minifier', t => {
-    t.plan(6)
-    const fastify = Fastify()
+  test('reply.view with eta engine and html-minifier', async (t) => {
+    t.plan(4)
 
-    fastify.register(POV, {
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    await fastify.register(plugin, {
       engine: {
         eta: eta
       },
@@ -120,31 +122,30 @@ module.exports.etaHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.get('/', (req, reply) => {
+    fastify.get('/', (request, reply) => {
       reply.view('templates/index.eta', data)
     })
 
-    fastify.listen(0, err => {
-      t.error(err)
+    await fastify.ready()
 
-      sget({
-        method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port
-      }, (err, response, body) => {
-        t.error(err)
-        t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
-        t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-        t.equal(minifier.minify(eta.render(fs.readFileSync('./templates/index.eta', 'utf8'), data), options), body.toString())
-        fastify.close()
-      })
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/'
     })
-  })
-  test('reply.view with eta engine and paths excluded from html-minifier', t => {
-    t.plan(6)
-    const fastify = Fastify()
 
-    fastify.register(POV, {
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+    t.equal(response.body.toString(), minifier.minify(eta.render(readFileSync('./templates/index.eta', 'utf8'), data), options))
+  })
+
+  test('reply.view with eta engine and paths excluded from html-minifier', async (t) => {
+    t.plan(4)
+
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    await fastify.register(plugin, {
       engine: {
         eta: eta
       },
@@ -155,37 +156,35 @@ module.exports.etaHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.get('/test', (req, reply) => {
+    fastify.get('/test', (request, reply) => {
       reply.view('templates/index.eta', data)
     })
 
-    fastify.listen(0, err => {
-      t.error(err)
+    await fastify.ready()
 
-      sget({
-        method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port + '/test'
-      }, (err, response, body) => {
-        t.error(err)
-        t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
-        t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-        t.equal(eta.render(fs.readFileSync('./templates/index.eta', 'utf8'), data), body.toString())
-        fastify.close()
-      })
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/test'
     })
+
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+    t.equal(response.body.toString(), eta.render(readFileSync('./templates/index.eta', 'utf8'), data))
   })
 }
 
 module.exports.handleBarsHtmlMinifierTests = function (t, withMinifierOptions) {
-  const test = t.test
+  const { test } = t
   const options = withMinifierOptions ? minifierOpts : {}
 
-  test('fastify.view with handlebars engine and html-minifier', t => {
-    t.plan(2)
-    const fastify = Fastify()
+  test('fastify.view with handlebars engine and html-minifier', async (t) => {
+    t.plan(1)
 
-    fastify.register(POV, {
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    await fastify.register(plugin, {
       engine: {
         handlebars: handlebars
       },
@@ -196,27 +195,27 @@ module.exports.handleBarsHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.ready(err => {
-      t.error(err)
+    await fastify.ready()
 
-      fastify.view('./templates/index.html', data).then(compiled => {
-        t.equal(minifier.minify(handlebars.compile(fs.readFileSync('./templates/index.html', 'utf8'))(data), options), compiled)
-        fastify.close()
-      })
+    await fastify.view('./templates/index.html', data).then(compiled => {
+      t.equal(compiled, minifier.minify(handlebars.compile(readFileSync('./templates/index.html', 'utf8'))(data), options))
     })
   })
 }
 
 module.exports.liquidHtmlMinifierTests = function (t, withMinifierOptions) {
-  const test = t.test
+  const { test } = t
   const options = withMinifierOptions ? minifierOpts : {}
 
-  test('reply.view with liquid engine and html-minifier', t => {
-    t.plan(7)
+  test('reply.view with liquid engine and html-minifier', async (t) => {
+    t.plan(4)
+
     const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
     const engine = new Liquid()
 
-    fastify.register(POV, {
+    await fastify.register(plugin, {
       engine: {
         liquid: engine
       },
@@ -226,36 +225,34 @@ module.exports.liquidHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.get('/', (req, reply) => {
+    fastify.get('/', (request, reply) => {
       reply.view('./templates/index.liquid', data)
     })
 
-    fastify.listen(0, err => {
-      t.error(err)
+    await fastify.ready()
 
-      sget({
-        method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port
-      }, (err, response, body) => {
-        t.error(err)
-        t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
-        t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-        engine.renderFile('./templates/index.liquid', data)
-          .then((html) => {
-            t.error(err)
-            t.equal(minifier.minify(html, options), body.toString())
-          })
-        fastify.close()
-      })
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/'
     })
+
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+
+    const html = await engine.renderFile('./templates/index.liquid', data)
+    t.equal(response.body.toString(), minifier.minify(html, options))
   })
-  test('reply.view with liquid engine and paths excluded from html-minifier', t => {
-    t.plan(7)
+
+  test('reply.view with liquid engine and paths excluded from html-minifier', async (t) => {
+    t.plan(4)
+
     const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
     const engine = new Liquid()
 
-    fastify.register(POV, {
+    await fastify.register(plugin, {
       engine: {
         liquid: engine
       },
@@ -266,41 +263,37 @@ module.exports.liquidHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.get('/test', (req, reply) => {
+    fastify.get('/test', (request, reply) => {
       reply.view('./templates/index.liquid', data)
     })
 
-    fastify.listen(0, err => {
-      t.error(err)
+    await fastify.ready()
 
-      sget({
-        method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port + '/test'
-      }, (err, response, body) => {
-        t.error(err)
-        t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
-        t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-        engine.renderFile('./templates/index.liquid', data)
-          .then((html) => {
-            t.error(err)
-            t.equal(html, body.toString())
-          })
-        fastify.close()
-      })
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/test'
     })
+
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+
+    const html = await engine.renderFile('./templates/index.liquid', data)
+    t.equal(response.body.toString(), html)
   })
 }
 
 module.exports.nunjucksHtmlMinifierTests = function (t, withMinifierOptions) {
-  const test = t.test
+  const { test } = t
   const options = withMinifierOptions ? minifierOpts : {}
 
-  test('reply.view with nunjucks engine, full path templates folder, and html-minifier', t => {
-    t.plan(6)
-    const fastify = Fastify()
+  test('reply.view with nunjucks engine, full path templates folder, and html-minifier', async (t) => {
+    t.plan(4)
 
-    fastify.register(POV, {
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    await fastify.register(plugin, {
       engine: {
         nunjucks: nunjucks
       },
@@ -311,32 +304,31 @@ module.exports.nunjucksHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.get('/', (req, reply) => {
+    fastify.get('/', (request, reply) => {
       reply.view('./index.njk', data)
     })
 
-    fastify.listen(0, err => {
-      t.error(err)
+    await fastify.ready()
 
-      sget({
-        method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port
-      }, (err, response, body) => {
-        t.error(err)
-        t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
-        t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-        // Global Nunjucks templates dir changed here.
-        t.equal(minifier.minify(nunjucks.render('./index.njk', data), options), body.toString())
-        fastify.close()
-      })
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/'
     })
-  })
-  test('reply.view with nunjucks engine, full path templates folder, and paths excluded from html-minifier', t => {
-    t.plan(6)
-    const fastify = Fastify()
 
-    fastify.register(POV, {
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+    // Global Nunjucks templates dir changed here.
+    t.equal(response.body.toString(), minifier.minify(nunjucks.render('./index.njk', data), options))
+  })
+
+  test('reply.view with nunjucks engine, full path templates folder, and paths excluded from html-minifier', async (t) => {
+    t.plan(4)
+
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    await fastify.register(plugin, {
       engine: {
         nunjucks: nunjucks
       },
@@ -348,38 +340,36 @@ module.exports.nunjucksHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.get('/test', (req, reply) => {
+    fastify.get('/test', (request, reply) => {
       reply.view('./index.njk', data)
     })
 
-    fastify.listen(0, err => {
-      t.error(err)
+    await fastify.ready()
 
-      sget({
-        method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port + '/test'
-      }, (err, response, body) => {
-        t.error(err)
-        t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
-        t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-        // Global Nunjucks templates dir changed here.
-        t.equal(nunjucks.render('./index.njk', data), body.toString())
-        fastify.close()
-      })
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/test'
     })
+
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+    // Global Nunjucks templates dir changed here.
+    t.equal(response.body.toString(), nunjucks.render('./index.njk', data))
   })
 }
 
 module.exports.pugHtmlMinifierTests = function (t, withMinifierOptions) {
-  const test = t.test
+  const { test } = t
   const options = withMinifierOptions ? minifierOpts : {}
 
-  test('reply.view with pug engine and html-minifier', t => {
-    t.plan(6)
-    const fastify = Fastify()
+  test('reply.view with pug engine and html-minifier', async (t) => {
+    t.plan(4)
 
-    fastify.register(POV, {
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    await fastify.register(plugin, {
       engine: {
         pug: pug
       },
@@ -389,31 +379,30 @@ module.exports.pugHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.get('/', (req, reply) => {
+    fastify.get('/', (request, reply) => {
       reply.view('./templates/index.pug', data)
     })
 
-    fastify.listen(0, err => {
-      t.error(err)
+    await fastify.ready()
 
-      sget({
-        method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port
-      }, (err, response, body) => {
-        t.error(err)
-        t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
-        t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-        t.equal(minifier.minify(pug.render(fs.readFileSync('./templates/index.pug', 'utf8'), data), options), body.toString())
-        fastify.close()
-      })
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/'
     })
-  })
-  test('reply.view with pug engine and paths excluded from html-minifier', t => {
-    t.plan(6)
-    const fastify = Fastify()
 
-    fastify.register(POV, {
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+    t.equal(response.body.toString(), minifier.minify(pug.render(readFileSync('./templates/index.pug', 'utf8'), data), options))
+  })
+
+  test('reply.view with pug engine and paths excluded from html-minifier', async (t) => {
+    t.plan(4)
+
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    await fastify.register(plugin, {
       engine: {
         pug: pug
       },
@@ -424,37 +413,35 @@ module.exports.pugHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.get('/test', (req, reply) => {
+    fastify.get('/test', (request, reply) => {
       reply.view('./templates/index.pug', data)
     })
 
-    fastify.listen(0, err => {
-      t.error(err)
+    await fastify.ready()
 
-      sget({
-        method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port + '/test'
-      }, (err, response, body) => {
-        t.error(err)
-        t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
-        t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-        t.equal(pug.render(fs.readFileSync('./templates/index.pug', 'utf8'), data), body.toString())
-        fastify.close()
-      })
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/test'
     })
+
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+    t.equal(response.body.toString(), pug.render(readFileSync('./templates/index.pug', 'utf8'), data))
   })
 }
 
 module.exports.twigHtmlMinifierTests = function (t, withMinifierOptions) {
-  const test = t.test
+  const { test } = t
   const options = withMinifierOptions ? minifierOpts : {}
 
-  test('reply.view with twig engine and html-minifier', t => {
-    t.plan(7)
-    const fastify = Fastify()
+  test('reply.view with twig engine and html-minifier', (t) => {
+    t.plan(6)
 
-    fastify.register(POV, {
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.register(plugin, {
       engine: {
         twig: Twig
       },
@@ -464,34 +451,37 @@ module.exports.twigHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.get('/', (req, reply) => {
+    fastify.get('/', (request, reply) => {
       reply.view('./templates/index.twig', data)
     })
 
-    fastify.listen(0, err => {
+    fastify.ready((err) => {
       t.error(err)
 
-      sget({
+      fastify.inject({
         method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port
-      }, (err, response, body) => {
-        t.error(err)
+        path: '/'
+      }).then((response) => {
         t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
+        t.equal(response.headers['content-length'], `${response.body.length}`)
         t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
         Twig.renderFile('./templates/index.twig', data, (err, html) => {
           t.error(err)
-          t.equal(minifier.minify(html, options), body.toString())
+          t.equal(response.body.toString(), minifier.minify(html, options))
         })
-        fastify.close()
+      }).catch((err) => {
+        t.error(err)
       })
     })
   })
-  test('reply.view with twig engine and paths excluded from html-minifier', t => {
-    t.plan(7)
-    const fastify = Fastify()
 
-    fastify.register(POV, {
+  test('reply.view with twig engine and paths excluded from html-minifier', (t) => {
+    t.plan(6)
+
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.register(plugin, {
       engine: {
         twig: Twig
       },
@@ -502,26 +492,26 @@ module.exports.twigHtmlMinifierTests = function (t, withMinifierOptions) {
       }
     })
 
-    fastify.get('/test', (req, reply) => {
+    fastify.get('/test', (request, reply) => {
       reply.view('./templates/index.twig', data)
     })
 
-    fastify.listen(0, err => {
+    fastify.ready((err) => {
       t.error(err)
 
-      sget({
+      fastify.inject({
         method: 'GET',
-        url: 'http://localhost:' + fastify.server.address().port + '/test'
-      }, (err, response, body) => {
-        t.error(err)
+        path: '/test'
+      }).then((response) => {
         t.equal(response.statusCode, 200)
-        t.equal(response.headers['content-length'], String(body.length))
+        t.equal(response.headers['content-length'], `${response.body.length}`)
         t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
         Twig.renderFile('./templates/index.twig', data, (err, html) => {
           t.error(err)
-          t.equal(html, body.toString())
+          t.equal(response.body.toString(), html)
         })
-        fastify.close()
+      }).catch((err) => {
+        t.error(err)
       })
     })
   })

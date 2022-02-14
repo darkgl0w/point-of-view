@@ -11,7 +11,7 @@ app.get('/', (req, res) => {
   res.render('../../templates/index.ejs', { text: 'text' })
 })
 
-app.listen(3000, err => {
+app.listen(3000, (err) => {
   if (err) throw err
   console.log('server listening on 3000')
 })

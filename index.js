@@ -1,38 +1,76 @@
 'use strict'
 
+const {
+  accessSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFile
+} = require('fs')
+const {
+  basename,
+  dirname,
+  extname,
+  join,
+  normalize,
+  resolve
+} = require('path')
 const fp = require('fastify-plugin')
-const readFile = require('fs').readFile
-const accessSync = require('fs').accessSync
-const existsSync = require('fs').existsSync
-const mkdirSync = require('fs').mkdirSync
-const readdirSync = require('fs').readdirSync
-const resolve = require('path').resolve
-const join = require('path').join
-const { basename, dirname, extname } = require('path')
 const HLRU = require('hashlru')
-const supportedEngines = ['ejs', 'nunjucks', 'pug', 'handlebars', 'mustache', 'art-template', 'twig', 'liquid', 'dot', 'eta']
+
+const supportedEngines = [
+  'art-template',
+  'dot',
+  'ejs',
+  'eta',
+  'handlebars',
+  'liquid',
+  'mustache',
+  'nunjucks',
+  'pug',
+  'twig'
+]
 
 function fastifyView (fastify, opts, next) {
   if (!opts.engine) {
-    next(new Error('Missing engine'))
-    return
+    return next(new Error('Missing engine'))
   }
+
   const type = Object.keys(opts.engine)[0]
+
   if (supportedEngines.indexOf(type) === -1) {
-    next(new Error(`'${type}' not yet supported, PR? :)`))
-    return
+    return next(new Error(`'${type}' is not yet supported. Would you like to send a PR ? :)`))
   }
-  const charset = opts.charset || 'utf-8'
-  const propertyName = opts.propertyName || 'view'
+
+  const defaultOptions = {
+    charset: 'utf-8',
+    defaultContext: {},
+    options: {},
+    includeViewExtension: false,
+    maxCache: 100,
+    production: process.env.NODE_ENV === 'production',
+    propertyName: 'view',
+    templates: '.',
+    viewExt: ''
+  }
+
+  const {
+    charset,
+    defaultContext: defaultCtx,
+    layout: globalLayoutFileName,
+    options: globalOptions,
+    includeViewExtension,
+    maxCache,
+    production: isProduction,
+    propertyName,
+    root,
+    templates,
+    viewExt
+  } = Object.assign(defaultOptions, opts)
+
   const engine = opts.engine[type]
-  const globalOptions = opts.options || {}
-  const templatesDir = opts.root || resolve(opts.templates || './')
-  const lru = HLRU(opts.maxCache || 100)
-  const includeViewExtension = opts.includeViewExtension || false
-  const viewExt = opts.viewExt || ''
-  const prod = typeof opts.production === 'boolean' ? opts.production : process.env.NODE_ENV === 'production'
-  const defaultCtx = opts.defaultContext || {}
-  const globalLayoutFileName = opts.layout
+  const lru = HLRU(maxCache)
+  const templatesDir = root || resolve(templates)
 
   function layoutIsValid (_layoutFileName) {
     if (type !== 'dot' && type !== 'handlebars' && type !== 'ejs' && type !== 'eta') {
@@ -48,40 +86,37 @@ function fastifyView (fastify, opts, next) {
     try {
       layoutIsValid(globalLayoutFileName)
     } catch (error) {
-      next(error)
-      return
+      return next(error)
     }
   }
 
-  const dotRender = type === 'dot' ? viewDot.call(fastify, preProcessDot.call(fastify, templatesDir, globalOptions)) : null
+  const dotRender = type === 'dot'
+    ? viewDot.call(fastify, preProcessDot.call(fastify, templatesDir, globalOptions))
+    : null
 
   const renders = {
+    _default: view,
+    'art-template': viewArtTemplate,
+    dot: withLayout(dotRender, globalLayoutFileName),
     ejs: withLayout(viewEjs, globalLayoutFileName),
+    eta: withLayout(viewEta, globalLayoutFileName),
     handlebars: withLayout(viewHandlebars, globalLayoutFileName),
+    liquid: viewLiquid,
     mustache: viewMustache,
     nunjucks: viewNunjucks,
-    'art-template': viewArtTemplate,
-    twig: viewTwig,
-    liquid: viewLiquid,
-    dot: withLayout(dotRender, globalLayoutFileName),
-    eta: withLayout(viewEta, globalLayoutFileName),
-    _default: view
+    twig: viewTwig
   }
 
-  const renderer = renders[type] ? renders[type] : renders._default
+  const renderer = renders[type] || renders._default
 
   function viewDecorator () {
     const args = Array.from(arguments)
-
-    let done
-    if (typeof args[args.length - 1] === 'function') {
-      done = args.pop()
-    }
+    const done = (typeof args[args.length - 1] === 'function') && args.pop()
 
     const promise = new Promise((resolve, reject) => {
       renderer.apply({
-        getHeader: () => { },
-        header: () => { },
+        getHeader: () => {},
+        header: () => {},
         send: result => {
           if (result instanceof Error) {
             reject(result)
@@ -94,8 +129,7 @@ function fastifyView (fastify, opts, next) {
     })
 
     if (done && typeof done === 'function') {
-      promise.then(done.bind(null, null), done)
-      return
+      return promise.then(done.bind(null, null), done)
     }
 
     return promise
@@ -109,6 +143,7 @@ function fastifyView (fastify, opts, next) {
 
   fastify.decorateReply(propertyName, function () {
     renderer.apply(this, arguments)
+
     return this
   })
 
@@ -120,9 +155,7 @@ function fastifyView (fastify, opts, next) {
       return result
     }
 
-    const filename = basename(page, extname(page))
-    result = join(dirname(page), filename + getExtension(page, extension))
-
+    result = join(dirname(page), `${basename(page, extname(page))}${getExtension(page, extension)}`)
     lru.set(pageLRU, result)
 
     return result
@@ -139,48 +172,51 @@ function fastifyView (fastify, opts, next) {
   }
 
   function getExtension (page, extension) {
-    let filextension = extname(page)
-    if (!filextension) {
-      filextension = '.' + getDefaultExtension(type)
-    }
-
-    return viewExt ? `.${viewExt}` : (includeViewExtension ? `.${extension}` : filextension)
+    return viewExt
+      ? `.${viewExt}`
+      : includeViewExtension
+        ? `.${extension}`
+        : extname(page) || `.${getDefaultExtension(type)}`
   }
 
-  function isPathExcludedMinification (currentPath, pathsToExclude) {
-    return (pathsToExclude && Array.isArray(pathsToExclude)) ? pathsToExclude.includes(currentPath) : false
+  function isPathExcludedFromMinification (currentPath, pathsToExclude) {
+    return (pathsToExclude && Array.isArray(pathsToExclude))
+      ? pathsToExclude.includes(currentPath)
+      : false
   }
 
   function useHtmlMinification (globalOpts, requestedPath) {
-    return globalOptions.useHtmlMinifier &&
-      (typeof globalOptions.useHtmlMinifier.minify === 'function') &&
-      !isPathExcludedMinification(requestedPath, globalOptions.pathsToExcludeHtmlMinifier)
+    return globalOpts.useHtmlMinifier &&
+      typeof globalOpts.useHtmlMinifier.minify === 'function' &&
+      !isPathExcludedFromMinification(requestedPath, globalOpts.pathsToExcludeHtmlMinifier)
   }
 
   function getRequestedPath (fastify) {
-    return (fastify && fastify.request) ? fastify.request.context.config.url : null
+    return (fastify && fastify.request)
+      ? fastify.request.context.config.url
+      : null
   }
-  // Gets template as string (or precompiled for Handlebars)
-  // from LRU cache or filesystem.
+
+  // Gets template as string (or precompiled for Handlebars) from LRU cache or filesystem.
   const getTemplate = function (file, callback, requestedPath) {
     const data = lru.get(file)
-    if (data && prod) {
-      callback(null, data)
+
+    if (data && isProduction) {
+      return callback(null, data)
     } else {
       readFile(join(templatesDir, file), 'utf-8', (err, data) => {
-        if (err) {
-          callback(err, null)
-          return
-        }
+        if (err) return callback(err, null)
 
         if (useHtmlMinification(globalOptions, requestedPath)) {
           data = globalOptions.useHtmlMinifier.minify(data, globalOptions.htmlMinifierOptions || {})
         }
+
         if (type === 'handlebars') {
           data = engine.compile(data)
         }
+
         lru.set(file, data)
-        callback(null, data)
+        return callback(null, data)
       })
     }
   }
@@ -188,29 +224,33 @@ function fastifyView (fastify, opts, next) {
   // Gets partials as collection of strings from LRU cache or filesystem.
   const getPartials = function (page, { partials, requestedPath }, callback) {
     const partialsObj = lru.get(`${page}-Partials`)
-    if (partialsObj && prod) {
-      callback(null, partialsObj)
+
+    if (partialsObj && isProduction) {
+      return callback(null, partialsObj)
     } else {
       let filesToLoad = Object.keys(partials).length
+
       if (filesToLoad === 0) {
-        callback(null, {})
-        return
+        return callback(null, {})
       }
+
       let error = null
       const partialsHtml = {}
-      Object.keys(partials).forEach((key, index) => {
+      Object.keys(partials).forEach((key) => {
         readFile(join(templatesDir, partials[key]), 'utf-8', (err, data) => {
           if (err) {
             error = err
           }
+
           if (useHtmlMinification(globalOptions, requestedPath)) {
             data = globalOptions.useHtmlMinifier.minify(data, globalOptions.htmlMinifierOptions || {})
           }
 
           partialsHtml[key] = data
+
           if (--filesToLoad === 0) {
             lru.set(`${page}-Partials`, partialsHtml)
-            callback(error, partialsHtml)
+            return callback(error, partialsHtml)
           }
         })
       })
@@ -221,41 +261,39 @@ function fastifyView (fastify, opts, next) {
     return function _readCallback (err, html) {
       const requestedPath = getRequestedPath(that)
 
-      if (err) {
-        that.send(err)
-        return
-      }
+      if (err) return that.send(err)
 
       let compiledPage
       try {
         if ((type === 'ejs') && viewExt && !globalOptions.includer) {
           globalOptions.includer = (originalPath, parsedPath) => {
             return {
-              filename: parsedPath || join(templatesDir, originalPath + '.' + viewExt)
+              filename: parsedPath || join(templatesDir, `${originalPath}.${viewExt}`)
             }
           }
         }
+
         globalOptions.filename = join(templatesDir, page)
         compiledPage = engine.compile(html, globalOptions)
       } catch (error) {
-        that.send(error)
-        return
+        return that.send(error)
       }
+
       lru.set(page, compiledPage)
 
-      if (!that.getHeader('content-type')) {
-        that.header('Content-Type', 'text/html; charset=' + charset)
-      }
       let cachedPage
       try {
         cachedPage = lru.get(page)(data)
       } catch (error) {
         cachedPage = error
       }
+
       if (useHtmlMinification(globalOptions, requestedPath)) {
         cachedPage = globalOptions.useHtmlMinifier.minify(cachedPage, globalOptions.htmlMinifierOptions || {})
       }
-      that.send(cachedPage)
+
+      setDefaultContentTypeIfNeeded(that, charset)
+      return that.send(cachedPage)
     }
   }
 
@@ -263,23 +301,20 @@ function fastifyView (fastify, opts, next) {
     // Process all templates to in memory functions
     // https://github.com/olado/doT#security-considerations
     const destinationDir = options.destination || join(__dirname, 'out')
+
     if (!existsSync(destinationDir)) {
       mkdirSync(destinationDir)
     }
 
-    const renderer = engine.process(Object.assign(
-      {},
-      options,
-      {
-        path: templatesDir,
-        destination: destinationDir
-      }
-    ))
+    const renderer = engine.process(
+      Object.assign({}, options, { path: templatesDir, destination: destinationDir })
+    )
 
     // .jst files are compiled to .js files so we need to require them
     for (const file of readdirSync(destinationDir, { withFileTypes: false })) {
       renderer[basename(file, '.js')] = require(resolve(join(destinationDir, file)))
     }
+
     if (Object.keys(renderer).length === 0) {
       this.log.warn(`WARN: no template found in ${templatesDir}`)
     }
@@ -288,10 +323,7 @@ function fastifyView (fastify, opts, next) {
   }
 
   function view (page, data) {
-    if (!page) {
-      this.send(new Error('Missing page'))
-      return
-    }
+    sendErrorOnMissingPage(page, this)
 
     data = Object.assign({}, defaultCtx, this.locals, data)
     // append view extension
@@ -299,12 +331,10 @@ function fastifyView (fastify, opts, next) {
 
     const toHtml = lru.get(page)
 
-    if (toHtml && prod) {
-      if (!this.getHeader('content-type')) {
-        this.header('Content-Type', 'text/html; charset=' + charset)
-      }
-      this.send(toHtml(data))
-      return
+    if (toHtml && isProduction) {
+      setDefaultContentTypeIfNeeded(this, charset)
+
+      return this.send(toHtml(data))
     }
 
     readFile(join(templatesDir, page), 'utf8', readCallback(this, page, data))
@@ -315,43 +345,34 @@ function fastifyView (fastify, opts, next) {
       try {
         layoutIsValid(opts.layout)
         const that = this
+
         return withLayout(viewEjs, opts.layout).call(that, page, data)
       } catch (error) {
-        this.send(error)
-        return
+        return this.send(error)
       }
     }
 
-    if (!page) {
-      this.send(new Error('Missing page'))
-      return
-    }
+    sendErrorOnMissingPage(page, this)
+
     data = Object.assign({}, defaultCtx, this.locals, data)
     // append view extension
     page = getPage(page, type)
     const requestedPath = getRequestedPath(this)
     getTemplate(page, (err, template) => {
-      if (err) {
-        this.send(err)
-        return
-      }
+      if (err) return this.send(err)
+
       const toHtml = lru.get(page)
-      if (toHtml && prod && (typeof (toHtml) === 'function')) {
-        if (!this.getHeader('content-type')) {
-          this.header('Content-Type', 'text/html; charset=' + charset)
-        }
-        this.send(toHtml(data))
-        return
+      if (toHtml && isProduction && (typeof (toHtml) === 'function')) {
+        setDefaultContentTypeIfNeeded(this, charset)
+        return this.send(toHtml(data))
       }
       readFile(join(templatesDir, page), 'utf8', readCallback(this, page, data))
     }, requestedPath)
   }
 
   function viewArtTemplate (page, data) {
-    if (!page) {
-      this.send(new Error('Missing page'))
-      return
-    }
+    sendErrorOnMissingPage(page, this)
+
     data = Object.assign({}, defaultCtx, this.locals, data)
     // Append view extension.
     page = getPage(page, 'art')
@@ -367,25 +388,23 @@ function fastifyView (fastify, opts, next) {
     function render (filename, data) {
       confs.filename = join(templatesDir, filename)
       const render = engine.compile(confs)
+
       return render(data)
     }
 
     try {
       const html = render(page, data)
-      if (!this.getHeader('content-type')) {
-        this.header('Content-Type', 'text/html; charset=' + charset)
-      }
-      this.send(html)
+
+      setDefaultContentTypeIfNeeded(this, charset)
+      return this.send(html)
     } catch (error) {
-      this.send(error)
+      return this.send(error)
     }
   }
 
   function viewNunjucks (page, data) {
-    if (!page) {
-      this.send(new Error('Missing page'))
-      return
-    }
+    sendErrorOnMissingPage(page, this)
+
     const env = engine.configure(templatesDir, globalOptions)
     if (typeof globalOptions.onConfigure === 'function') {
       globalOptions.onConfigure(env)
@@ -394,13 +413,16 @@ function fastifyView (fastify, opts, next) {
     // Append view extension.
     page = getPage(page, 'njk')
     env.render(join(templatesDir, page), data, (err, html) => {
-      const requestedPath = getRequestedPath(this)
       if (err) return this.send(err)
+
+      const requestedPath = getRequestedPath(this)
+
       if (useHtmlMinification(globalOptions, requestedPath)) {
         html = globalOptions.useHtmlMinifier.minify(html, globalOptions.htmlMinifierOptions || {})
       }
-      this.header('Content-Type', 'text/html; charset=' + charset)
-      this.send(html)
+
+      setDefaultContentTypeIfNeeded(this, charset)
+      return this.send(html)
     })
   }
 
@@ -409,17 +431,14 @@ function fastifyView (fastify, opts, next) {
       try {
         layoutIsValid(opts.layout)
         const that = this
+
         return withLayout(viewHandlebars, opts.layout).call(that, page, data)
       } catch (error) {
-        this.send(error)
-        return
+        return this.send(error)
       }
     }
 
-    if (!page) {
-      this.send(new Error('Missing page'))
-      return
-    }
+    sendErrorOnMissingPage(page, this)
 
     const options = Object.assign({}, globalOptions)
     data = Object.assign({}, defaultCtx, this.locals, data)
@@ -427,27 +446,20 @@ function fastifyView (fastify, opts, next) {
     page = getPage(page, 'hbs')
     const requestedPath = getRequestedPath(this)
     getTemplate(page, (err, template) => {
-      if (err) {
-        this.send(err)
-        return
-      }
+      if (err) return this.send(err)
 
-      if (prod) {
+      if (isProduction) {
         try {
           const html = template(data)
-          if (!this.getHeader('content-type')) {
-            this.header('Content-Type', 'text/html; charset=' + charset)
-          }
-          this.send(html)
-        } catch (e) {
-          this.send(e)
+
+          setDefaultContentTypeIfNeeded(this, charset)
+          return this.send(html)
+        } catch (error) {
+          return this.send(error)
         }
       } else {
         getPartials(type, { partials: options.partials || {}, requestedPath: requestedPath }, (err, partialsObject) => {
-          if (err) {
-            this.send(err)
-            return
-          }
+          if (err) return this.send(err)
 
           try {
             Object.keys(partialsObject).forEach((name) => {
@@ -456,12 +468,10 @@ function fastifyView (fastify, opts, next) {
 
             const html = template(data)
 
-            if (!this.getHeader('content-type')) {
-              this.header('Content-Type', 'text/html; charset=' + charset)
-            }
-            this.send(html)
-          } catch (e) {
-            this.send(e)
+            setDefaultContentTypeIfNeeded(this, charset)
+            return this.send(html)
+          } catch (error) {
+            return this.send(error)
           }
         })
       }
@@ -469,10 +479,7 @@ function fastifyView (fastify, opts, next) {
   }
 
   function viewMustache (page, data, opts) {
-    if (!page) {
-      this.send(new Error('Missing page'))
-      return
-    }
+    sendErrorOnMissingPage(page, this)
 
     const options = Object.assign({}, opts)
     data = Object.assign({}, defaultCtx, this.locals, data)
@@ -480,72 +487,72 @@ function fastifyView (fastify, opts, next) {
     page = getPage(page, 'mustache')
     const requestedPath = getRequestedPath(this)
     getTemplate(page, (err, templateString) => {
-      if (err) {
-        this.send(err)
-        return
-      }
+      if (err) return this.send(err)
+
       getPartials(page, { partials: options.partials || {}, requestedPath: requestedPath }, (err, partialsObject) => {
-        if (err) {
-          this.send(err)
-          return
-        }
+        if (err) return this.send(err)
+
         const html = engine.render(templateString, data, partialsObject)
 
-        if (!this.getHeader('content-type')) {
-          this.header('Content-Type', 'text/html; charset=' + charset)
-        }
-        this.send(html)
+        setDefaultContentTypeIfNeeded(this, charset)
+        return this.send(html)
       })
     }, requestedPath)
   }
 
   function viewTwig (page, data, opts) {
-    if (!page) {
-      this.send(new Error('Missing page'))
-      return
-    }
+    sendErrorOnMissingPage(page, this)
 
     data = Object.assign({}, defaultCtx, globalOptions, this.locals, data)
     // Append view extension.
     page = getPage(page, 'twig')
     engine.renderFile(join(templatesDir, page), data, (err, html) => {
+      if (err) return this.send(err)
+
       const requestedPath = getRequestedPath(this)
-      if (err) {
-        return this.send(err)
-      }
+
       if (useHtmlMinification(globalOptions, requestedPath)) {
         html = globalOptions.useHtmlMinifier.minify(html, globalOptions.htmlMinifierOptions || {})
       }
-      if (!this.getHeader('content-type')) {
-        this.header('Content-Type', 'text/html; charset=' + charset)
-      }
-      this.send(html)
+
+      setDefaultContentTypeIfNeeded(this, charset)
+      return this.send(html)
     })
   }
 
   function viewLiquid (page, data, opts) {
-    if (!page) {
-      this.send(new Error('Missing page'))
-      return
-    }
+    sendErrorOnMissingPage(page, this)
 
     data = Object.assign({}, defaultCtx, this.locals, data)
     // Append view extension.
     page = getPage(page, 'liquid')
 
-    engine.renderFile(join(templatesDir, page), data, opts)
+    const { root } = engine.options
+
+    // Don't execute it if root path is included, then serve it directly
+    const isRootIncluded = root
+      .map((path) => normalize(path))
+      .find((path) => page.indexOf(path) !== -1)
+
+    const pagePath = (typeof root.length !== 'undefined' && !isRootIncluded)
+      ? root
+          .map((dir) => join(resolve(dir), page))
+          .find((filepath) => existsSync(filepath)) || join(templatesDir, page)
+      : join(templatesDir, page)
+
+    engine.renderFile(pagePath, data, opts)
       .then((html) => {
         const requestedPath = getRequestedPath(this)
+
         if (useHtmlMinification(globalOptions, requestedPath)) {
           html = globalOptions.useHtmlMinifier.minify(html, globalOptions.htmlMinifierOptions || {})
         }
-        if (!this.getHeader('content-type')) {
-          this.header('Content-Type', 'text/html; charset=' + charset)
-        }
-        this.send(html)
+
+        setDefaultContentTypeIfNeeded(this, charset)
+        return this.send(html)
       })
       .catch((err) => {
-        this.send(err)
+        return this.send(err)
       })
   }
 
@@ -555,26 +562,25 @@ function fastifyView (fastify, opts, next) {
         try {
           layoutIsValid(opts.layout)
           const that = this
+
           return withLayout(dotRender, opts.layout).call(that, page, data)
         } catch (error) {
-          this.send(error)
-          return
+          return this.send(error)
         }
       }
-      if (!page) {
-        this.send(new Error('Missing page'))
-        return
-      }
+
+      sendErrorOnMissingPage(page, this)
+
       data = Object.assign({}, defaultCtx, this.locals, data)
       let html = renderModule[page](data)
       const requestedPath = getRequestedPath(this)
+
       if (useHtmlMinification(globalOptions, requestedPath)) {
         html = globalOptions.useHtmlMinifier.minify(html, globalOptions.htmlMinifierOptions || {})
       }
-      if (!this.getHeader('content-type')) {
-        this.header('Content-Type', 'text/html; charset=' + charset)
-      }
-      this.send(html)
+
+      setDefaultContentTypeIfNeeded(this, charset)
+      return this.send(html)
     }
   }
 
@@ -583,17 +589,14 @@ function fastifyView (fastify, opts, next) {
       try {
         layoutIsValid(opts.layout)
         const that = this
+
         return withLayout(viewEta, opts.layout).call(that, page, data)
       } catch (error) {
-        this.send(error)
-        return
+        return this.send(error)
       }
     }
 
-    if (!page) {
-      this.send(new Error('Missing page'))
-      return
-    }
+    sendErrorOnMissingPage(page, this)
 
     lru.define = lru.set
     engine.configure({
@@ -601,7 +604,7 @@ function fastifyView (fastify, opts, next) {
     })
 
     const config = Object.assign({
-      cache: prod,
+      cache: isProduction,
       views: templatesDir
     }, globalOptions)
 
@@ -611,56 +614,59 @@ function fastifyView (fastify, opts, next) {
     page = getPage(page, 'eta')
     engine.renderFile(page, data, config, (err, html) => {
       if (err) return this.send(err)
+
       if (
         config.useHtmlMinifier &&
         typeof config.useHtmlMinifier.minify === 'function' &&
-        !isPathExcludedMinification(getRequestedPath(this), config.pathsToExcludeHtmlMinifier)
+        !isPathExcludedFromMinification(getRequestedPath(this), config.pathsToExcludeHtmlMinifier)
       ) {
         html = config.useHtmlMinifier.minify(
           html,
           config.htmlMinifierOptions || {}
         )
       }
-      this.header('Content-Type', 'text/html; charset=' + charset)
-      this.send(html)
+
+      setDefaultContentTypeIfNeeded(this, charset)
+      return this.send(html)
     })
   }
 
-  if (prod && type === 'handlebars' && globalOptions.partials) {
-    getPartials(type, { partials: globalOptions.partials || {}, requestedPath: getRequestedPath(this) }, (err, partialsObject) => {
-      if (err) {
-        next(err)
-        return
-      }
+  if (isProduction && type === 'handlebars' && globalOptions.partials) {
+    getPartials(type, { partials: globalOptions.partials, requestedPath: getRequestedPath(this) }, (err, partialsObject) => {
+      if (err) return next(err)
+
       Object.keys(partialsObject).forEach((name) => {
         engine.registerPartial(name, engine.compile(partialsObject[name]))
       })
-      next()
+
+      return next()
     })
   } else {
-    next()
+    return next()
   }
 
   function withLayout (render, layout) {
     if (layout) {
       return function (page, data, opts) {
         if (opts && opts.layout) throw new Error('A layout can either be set globally or on render, not both.')
+
         const that = this
         data = Object.assign({}, defaultCtx, this.locals, data)
         render.call({
-          getHeader: () => { },
-          header: () => { },
+          getHeader: () => {},
+          header: () => {},
           send: (result) => {
             if (result instanceof Error) {
               throw result
             }
 
-            data = Object.assign((data || {}), { body: result })
+            data = Object.assign(data, { body: result })
             render.call(that, layout, data, opts)
           }
         }, page, data, opts)
       }
     }
+
     return render
   }
 
@@ -669,9 +675,19 @@ function fastifyView (fastify, opts, next) {
       accessSync(join(templatesDir, getPage(fileName, ext)))
 
       return true
-    } catch (e) {
+    } catch (error) {
       return false
     }
+  }
+}
+
+function sendErrorOnMissingPage (page, reply) {
+  if (!page) return reply.send(new Error('Missing page'))
+}
+
+function setDefaultContentTypeIfNeeded (reply, charset) {
+  if (!reply.getHeader('content-type')) {
+    return reply.header('Content-Type', `text/html; charset=${charset}`)
   }
 }
 

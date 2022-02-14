@@ -1,13 +1,20 @@
 'use strict'
 
-const fastify = require('fastify')()
-const resolve = require('path').resolve
+const { resolve } = require('path')
+
+const Fastify = require('fastify')
+const ejsEngine = require('ejs')
+// const pointOfView = require('point-of-view')
+const pointOfView = require('..')
+
 const templatesFolder = 'templates'
 const data = { text: 'Hello from EJS Templates' }
 
-fastify.register(require('./index'), {
+const fastify = Fastify({ logger: true })
+
+fastify.register(pointOfView, {
   engine: {
-    ejs: require('ejs')
+    ejs: ejsEngine
   },
   defaultContext: {
     header: 'header value defined as default contenxt',
@@ -22,24 +29,23 @@ fastify.register(require('./index'), {
   charset: 'utf-8' // sample usage, but specifying the same value already used as default
 })
 
-fastify.get('/', (req, reply) => {
+fastify.get('/', (request, reply) => {
   // reply.type('text/html; charset=utf-8').view('index-linking-other-pages', data)  // sample for specifying with type
   reply.view('index-linking-other-pages', data)
 })
 
-fastify.get('/include-test', (req, reply) => {
+fastify.get('/include-test', (request, reply) => {
   reply.view('index-with-includes', data)
 })
 
-fastify.get('/include-one-include-missing-test', (req, reply) => {
+fastify.get('/include-one-include-missing-test', (request, reply) => {
   reply.view('index-with-includes-one-missing', data)
 })
 
-fastify.get('/include-one-attribute-missing-test', (req, reply) => {
+fastify.get('/include-one-attribute-missing-test', (request, reply) => {
   reply.view('index-with-includes-and-attribute-missing', data)
 })
 
-fastify.listen(3000, err => {
+fastify.listen(3000, (err) => {
   if (err) throw err
-  console.log(`server listening on ${fastify.server.address().port}`)
 })
