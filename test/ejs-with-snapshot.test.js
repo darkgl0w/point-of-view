@@ -15,7 +15,7 @@ const options = {
 }
 
 test('EJS engine (requires TAP snapshots enabled) - using `reply.view` decorator :', async (t) => {
-  t.test('when `templates` with folder are specified, include files (ejs and html) used in template, `includeViewExtension` property as `true`', async (t) => {
+  t.test('when `templates` with folders are specified, include files (ejs and html) used in template, `includeViewExtension` property as `true`', async (t) => {
     t.plan(6)
 
     const fastify = Fastify()
@@ -59,7 +59,7 @@ test('EJS engine (requires TAP snapshots enabled) - using `reply.view` decorator
     t.matchSnapshot(output.replace(/\r?\n/g, ''), 'output')
   })
 
-  t.test('when `templates` with folder are specified, include `files` and `attributes` - home folder', async (t) => {
+  t.test('when `templates` with folders are specified, include `files` and `attributes` - home folder', async (t) => {
     t.plan(6)
 
     const fastify = Fastify()
@@ -102,7 +102,7 @@ test('EJS engine (requires TAP snapshots enabled) - using `reply.view` decorator
     t.matchSnapshot(output.replace(/\r?\n/g, ''), 'output')
   })
 
-  t.test('when `templates` with folder are specified, include `files` and `attributes` - page with includes', async (t) => {
+  t.test('when `templates` with folders are specified, include `files` and `attributes` - page with includes', async (t) => {
     t.plan(6)
 
     const fastify = Fastify()
@@ -143,7 +143,7 @@ test('EJS engine (requires TAP snapshots enabled) - using `reply.view` decorator
     t.matchSnapshot(output.replace(/\r?\n/g, ''), 'output')
   })
 
-  t.test('when `templates` with folder are specified, include `files` and `attributes` - page with one include missing', async (t) => {
+  t.test('when `templates` with folders are specified, include `files` and `attributes` - page with one include missing', async (t) => {
     t.plan(7)
 
     const fastify = Fastify()
@@ -184,7 +184,7 @@ test('EJS engine (requires TAP snapshots enabled) - using `reply.view` decorator
     t.matchSnapshot(output, 'output')
   })
 
-  t.test('when `templates` with folder are specified, include `files` and `attributes` - page with one attribute missing', async (t) => {
+  t.test('when `templates` with folders are specified, include `files` and `attributes` - page with one attribute missing', async (t) => {
     t.plan(7)
 
     const fastify = Fastify()

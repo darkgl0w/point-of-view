@@ -72,6 +72,69 @@ test('EJS engine - using `fastify.view` decorator :', async (t) => {
 })
 
 test('EJS engine - using `reply.view` decorator :', async (t) => {
+  t.test('with default options', async (t) => {
+    t.plan(4)
+
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    const data = { text: 'text' }
+
+    await fastify.register(plugin, {
+      engine: { ejs }
+    })
+
+    fastify.get('/', (request, reply) => {
+      reply.view('templates/index.ejs', data)
+    })
+
+    await fastify.ready()
+
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/'
+    })
+
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+
+    const html = ejs.render(readFileSync('./templates/index.ejs', 'utf8'), data)
+    t.equal(response.body.toString(), html)
+  })
+
+  t.test('with `defaultContext`', async (t) => {
+    t.plan(4)
+
+    const fastify = Fastify()
+    t.teardown(fastify.close.bind(fastify))
+
+    const data = { text: 'text' }
+
+    await fastify.register(plugin, {
+      engine: { ejs },
+      defaultContext: data
+    })
+
+    fastify.get('/', (request, reply) => {
+      reply.view('templates/index.ejs', {})
+    })
+
+    await fastify.ready()
+
+    const response = await fastify.inject({
+      method: 'GET',
+      path: '/'
+    })
+
+    t.equal(response.statusCode, 200)
+    t.equal(response.headers['content-length'], `${response.body.length}`)
+    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+
+    const html = ejs.render(readFileSync('./templates/index.ejs', 'utf8'), data)
+    t.equal(response.body.toString(), html)
+  })
+
   t.test('with custom `templates` folder', async (t) => {
     t.plan(4)
 
@@ -235,7 +298,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view for ejs without data-parameter but defaultContext', async (t) => {
+  t.test('with `defaultContext` but without `data` parameter', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -268,7 +331,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view for ejs without data-parameter and without defaultContext', async (t) => {
+  t.test('without `defaultContext` and `data` parameter', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -298,7 +361,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view for ejs engine without data-parameter and defaultContext but with reply.locals', async (t) => {
+  t.test('without `defaultContext` and `data` parameter but with `reply.locals`', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -334,7 +397,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view for ejs engine without defaultContext but with reply.locals and data-parameter', async (t) => {
+  t.test('without `defaultContext` but with `reply.locals` and `data` parameter', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -371,7 +434,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view for ejs engine without data-parameter but with reply.locals and defaultContext', async (t) => {
+  t.test('with `defaultContext` and `reply.locals` but without `data` parameter', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -409,7 +472,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view for ejs engine with data-parameter and reply.locals and defaultContext', async (t) => {
+  t.test('with `defaultContext`, `data` parameter and `reply.locals`', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -448,7 +511,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view with ejs engine and full path templates folder', async (t) => {
+  t.test('with full path `templates` folder', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -480,7 +543,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view with ejs engine and includeViewExtension property as true', async (t) => {
+  t.test('with `includeViewExtension` property set to `true`', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -513,7 +576,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view with ejs engine, template folder specified, include files (ejs and html) used in template, includeViewExtension property as true', async (t) => {
+  t.test('when `templates` folders are specified, include files (ejs and html) used in template, `includeViewExtension` property set to `true`', async (t) => {
     t.plan(5)
 
     const fastify = Fastify()
@@ -523,8 +586,10 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     const resolve = require('path').resolve
     const templatesFolder = 'templates'
     const options = {
-      filename: resolve(templatesFolder), // needed for include files to be resolved in include directive ...
-      views: [__dirname] // must be put to make tests (with include files) working ...
+      // needed for include files to be resolved in include directive ...
+      filename: resolve(templatesFolder),
+      // must be put to make tests (with include files) working ...
+      views: [__dirname]
     }
     const data = { text: 'text' }
 
@@ -560,7 +625,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     })
   })
 
-  t.test('reply.view with ejs engine, templates with folder specified, include files and attributes; home', async (t) => {
+  t.test('when `templates` with folders are specified, include files and attributes - home folder', async (t) => {
     t.plan(5)
 
     const fastify = Fastify()
@@ -603,70 +668,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     })
   })
 
-  t.test('reply.view with ejs engine', async (t) => {
-    t.plan(4)
-
-    const fastify = Fastify()
-    t.teardown(fastify.close.bind(fastify))
-
-    const data = { text: 'text' }
-
-    await fastify.register(plugin, {
-      engine: { ejs }
-    })
-
-    fastify.get('/', (request, reply) => {
-      reply.view('templates/index.ejs', data)
-    })
-
-    await fastify.ready()
-
-    const response = await fastify.inject({
-      method: 'GET',
-      path: '/'
-    })
-
-    t.equal(response.statusCode, 200)
-    t.equal(response.headers['content-length'], `${response.body.length}`)
-    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-
-    const html = ejs.render(readFileSync('./templates/index.ejs', 'utf8'), data)
-    t.equal(response.body.toString(), html)
-  })
-
-  t.test('reply.view with ejs engine and defaultContext', async (t) => {
-    t.plan(4)
-
-    const fastify = Fastify()
-    t.teardown(fastify.close.bind(fastify))
-
-    const data = { text: 'text' }
-
-    await fastify.register(plugin, {
-      engine: { ejs },
-      defaultContext: data
-    })
-
-    fastify.get('/', (request, reply) => {
-      reply.view('templates/index.ejs', {})
-    })
-
-    await fastify.ready()
-
-    const response = await fastify.inject({
-      method: 'GET',
-      path: '/'
-    })
-
-    t.equal(response.statusCode, 200)
-    t.equal(response.headers['content-length'], `${response.body.length}`)
-    t.equal(response.headers['content-type'], 'text/html; charset=utf-8')
-
-    const html = ejs.render(readFileSync('./templates/index.ejs', 'utf8'), data)
-    t.equal(response.body.toString(), html)
-  })
-
-  t.test('reply.view with ejs engine and html-minifier', async (t) => {
+  t.test('with html-minifier', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -699,7 +701,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(minifier.minify(ejs.render(readFileSync('./templates/index.ejs', 'utf8'), data), minifierOpts), response.body.toString())
   })
 
-  t.test('reply.view with ejs engine and paths excluded from html-minifier', async (t) => {
+  t.test('with paths excluded from html-minifier', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -735,7 +737,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view with ejs engine and includeViewExtension property as true', async (t) => {
+  t.test('with `includeViewExtension` property set to `true`', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -767,7 +769,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('*** reply.view with ejs engine with layout option, includeViewExtension property as true ***', async (t) => {
+  t.test('with `layout` option, `includeViewExtension` property set to `true`', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -807,7 +809,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('*** reply.view with ejs engine with layout option on render, includeViewExtension property as true ***', async (t) => {
+  t.test('with `layout` option on render, `includeViewExtension` property set to `true`', async (t) => {
     t.plan(4)
 
     const fastify = Fastify()
@@ -846,7 +848,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.body.toString(), html)
   })
 
-  t.test('reply.view with ejs engine, template folder specified, include files (ejs and html) used in template, includeViewExtension property as true', async (t) => {
+  t.test('when `templates` folders are specified, include files (ejs and html) used in `templates`, `includeViewExtension` property set to `true`', async (t) => {
     t.plan(5)
 
     const fastify = Fastify()
@@ -854,8 +856,10 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
 
     const templatesFolder = 'templates'
     const options = {
-      filename: resolve(templatesFolder), // needed for include files to be resolved in include directive ...
-      views: [__dirname] // must be put to make tests (with include files) working ...
+      // needed for include files to be resolved in include directive ...
+      filename: resolve(templatesFolder),
+      // must be put to make tests (with include files) working ...
+      views: [__dirname]
     }
     const data = { text: 'text' }
 
@@ -868,9 +872,10 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
 
     fastify.get('/', (request, reply) => {
       reply
+        // sample for specifying with type
         .type('text/html; charset=utf-8')
-        .view('index-linking-other-pages', data) // sample for specifying with type
-    // reply.view('index-with-includes', data)
+        .view('index-linking-other-pages', data)
+        // reply.view('index-with-includes', data)
     })
 
     await fastify.ready()
@@ -890,7 +895,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     })
   })
 
-  t.test('reply.view with ejs engine, templates with folder specified, include files and attributes; home', async (t) => {
+  t.test('when `templates` with folders are specified, include files and attributes - home folder', async (t) => {
     t.plan(5)
 
     const fastify = Fastify()
@@ -933,7 +938,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     })
   })
 
-  t.test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with no data', async (t) => {
+  t.test('when `templates` with folders are specified, include files and attributes - page with no data', async (t) => {
     t.plan(5)
 
     const fastify = Fastify()
@@ -973,7 +978,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     })
   })
 
-  t.test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with includes', async (t) => {
+  t.test('when `templates` with folders are specified, include files and attributes - page with includes', async (t) => {
     t.plan(5)
 
     const fastify = Fastify()
@@ -1015,7 +1020,7 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     })
   })
 
-  t.test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with one include missing', async (t) => {
+  t.test('when `templates` with folders are specified, include files and attributes - page with one missing include', async (t) => {
     t.plan(5)
 
     const fastify = Fastify()
@@ -1051,12 +1056,12 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.headers['content-length'], `${response.body.length}`)
 
     ejs.renderFile(templatesFolder + '/index-with-includes-one-missing.ejs', data, options, function (err, output) {
-      t.type(err, Error) // expected Error here ...
+      t.type(err, Error)
       t.equal(output, undefined)
     })
   })
 
-  t.test('reply.view with ejs engine, templates with folder specified, include files and attributes; page with one attribute missing', async (t) => {
+  t.test('when `templates` with folders are specified, include files and attributes - page with one missing attribute', async (t) => {
     t.plan(5)
 
     const fastify = Fastify()
@@ -1094,12 +1099,12 @@ test('EJS engine - using `reply.view` decorator :', async (t) => {
     t.equal(response.headers['content-length'], `${response.body.length}`)
 
     ejs.renderFile(templatesFolder + '/index-with-includes-and-attribute-missing.ejs', data, options, function (err, output) {
-      t.type(err, Error) // expected Error here ...
+      t.type(err, Error)
       t.equal(output, undefined)
     })
   })
 
-  t.test('reply.view should return 500 if layout is missing on render', async (t) => {
+  t.test('with missing `layout` on render, it should return a 500 error', async (t) => {
     t.plan(2)
 
     const fastify = Fastify()
